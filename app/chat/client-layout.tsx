@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ChatProvider } from '@/context/ChatContext';
+import { ChatProvider } from '../context/ChatContext';
 
 export function ClientLayout({
   children

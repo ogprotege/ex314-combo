@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { SaintOfDay } from "@/components/saint-of-day"
 import { Facebook, Twitter, Instagram, Github, Mail } from "lucide-react"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "../hooks/use-auth"
 
 export default function Home() {
   const { isAuthenticated } = useAuth();

@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { ChatInput } from '@/components/ChatInput';
-import { ChatMessage } from '@/components/ChatMessage';
-import { ChatService } from '@/lib/services/chatService';
-import type { Message } from '@/lib/types';
+import { ChatInput } from './ChatInput';
+import { ChatMessage } from './ChatMessage';
+import { ChatService } from '../lib/services/chatService';
+import type { Message } from '../lib/types';
 
 const chatService = new ChatService();
 

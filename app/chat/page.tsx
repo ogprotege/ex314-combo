@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Sidebar } from '@/components/Sidebar';
-import { InitialView } from '@/components/InitialView';
-import { ChatView } from '@/components/ChatView';
-import { Header } from '@/components/Header';
+import { Sidebar } from '../components/Sidebar';
+import { InitialView } from '../components/InitialView';
+import { ChatView } from '../components/ChatView';
+import { Header } from '../components/Header';
 import { useRouter } from 'next/navigation';
-import type { Message } from '@/lib/types';
-import { useAuth } from '@/hooks/use-auth';
+import type { Message } from '../lib/types';
+import { useAuth } from '../../hooks/use-auth';
 
 export default function Home() {
   const { isAuthenticated, isLoading: authLoading, logout } = useAuth();

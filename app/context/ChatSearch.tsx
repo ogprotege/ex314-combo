@@ -2,7 +2,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useChat } from '@/context/ChatContext'
+import { useChat } from './ChatContext'
 import { SearchIcon } from 'lucide-react'
 
 export const ChatSearch = () => {

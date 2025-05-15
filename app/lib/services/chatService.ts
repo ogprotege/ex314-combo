@@ -1,6 +1,6 @@
-import { getTogetherAIResponse } from '@/lib/services/chatAPIClient';
-import { MessageSchema } from '@/lib/validation/messageSchema';
-import type { Message } from '@/lib/validation/messageSchema';
+import { getTogetherAIResponse } from './chatAPIClient';
+import { MessageSchema } from '../validation/messageSchema';
+import type { Message } from '../validation/messageSchema';
 
 export class ChatService {
   /**

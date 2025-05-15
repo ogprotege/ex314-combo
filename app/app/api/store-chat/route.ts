@@ -1,8 +1,8 @@
 // app/api/store-chat/route.ts
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '../../../lib/supabaseClient';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { MessageSchema } from '@/lib/validation/messageSchema';
+import { MessageSchema } from '../../../lib/validation/messageSchema';
 
 // Step 1: Define full payload schema
 const StoreChatSchema = z.object({

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { Message } from '@/lib/types';
+import type { Message } from '../lib/types';
 import { UserIcon, BrainCircuitIcon } from 'lucide-react';
 
 interface ChatMessageProps {

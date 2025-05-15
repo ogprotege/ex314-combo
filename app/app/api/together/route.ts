@@ -1,11 +1,14 @@
 import { OpenAI } from 'openai';
 import { NextResponse } from 'next/server';
-import { getServiceSupabase } from '@/lib/supabaseClient';
+import { getServiceSupabase } from '../../../lib/supabaseClient';
 
-const together = new OpenAI({
-  apiKey: process.env.TOGETHER_API_KEY!,
-  baseURL: 'https://api.together.xyz/v1',
-});
+let together;
+if (process.env.TOGETHER_API_KEY) {
+  together = new OpenAI({
+    apiKey: process.env.TOGETHER_API_KEY,
+    baseURL: 'https://api.together.xyz/v1',
+  });
+}
 
 export async function POST(req: Request) {
   try {
@@ -13,6 +16,10 @@ export async function POST(req: Request) {
 
     if (!Array.isArray(messages)) {
       return NextResponse.json({ error: 'Invalid messages array' }, { status: 400 });
+    }
+    
+    if (!together) {
+      return NextResponse.json({ error: 'Together API not configured' }, { status: 500 });
     }
 
     const model = 'thebiscuit1/Llama-3.3-70B-32k-Instruct-Reference-ex314-ft-p1-round3-0daf7fe8';
