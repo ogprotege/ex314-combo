@@ -4,6 +4,31 @@ import { ChiRho } from "@/components/chi-rho"
 import Link from "next/link"
 
 export default async function DashboardPage() {
+  // Skip auth check during build time
+  if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <header className="site-header w-full py-6 px-4 md:px-8 flex justify-between items-center">
+          <Link href="/" className="flex items-center gap-2">
+            <ChiRho className="h-8 w-8" />
+            <h1 className="text-2xl font-bold">Ex314.ai</h1>
+          </Link>
+          <nav className="flex items-center gap-4">
+            <Link href="/resources" className="nav-link">Resources</Link>
+            <Link href="/calendar" className="nav-link">Liturgical Calendar</Link>
+            <Link href="/prayers" className="nav-link">Prayers</Link>
+          </nav>
+        </header>
+
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <h1 className="text-3xl font-bold mb-2 text-center">Your Prayer Dashboard</h1>
+          <p className="text-gray-600 mb-8 text-center">Welcome, Friend! Manage your saved prayers and devotions.</p>
+          {/* Dashboard content */}
+        </main>
+      </div>
+    );
+  }
+
   const user = await currentUser()
 
   // If the user is not signed in, redirect to the sign-in page
