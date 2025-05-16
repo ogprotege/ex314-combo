@@ -17,6 +17,11 @@ try {
 }
 
 export const useAuth = () => {
+  // Add build-time check to skip auth
+  if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
+    return { isAuthenticated: false, isLoading: false };
+  }
+
   // If Clerk is available, use the AuthContext which integrates with Clerk
   if (clerkImported) {
     try {
