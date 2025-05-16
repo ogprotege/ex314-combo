@@ -21,6 +21,7 @@ export default function Home() {
   const auth = useAuth() as AuthState;
   const { isAuthenticated, isLoading: authLoading, logout } = auth;
   const [isClient, setIsClient] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
   const router = useRouter();
   
@@ -84,9 +85,6 @@ export default function Home() {
       </div>
     );
   }
-
-  // Skip auth check for build time
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
     <div className="flex flex-col w-full h-screen bg-dark-bg text-white font-segoe">
