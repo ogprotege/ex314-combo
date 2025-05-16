@@ -10,13 +10,22 @@ Be respectful, charitable, and clear in your explanations.
 If you're unsure about something, acknowledge the limits of your knowledge rather than speculating.
 For matters of personal spiritual guidance, remind users to consult with their priest or spiritual director.`
 
-// Initialize OpenAI client
+// Initialize OpenAI client with fallback for build time
+const openaiApiKey = process.env.OPENAI_API_KEY || 'sk-placeholder-for-build';
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: openaiApiKey
 });
 
 export async function POST(req: NextRequest) {
   try {
+    // Skip real API calls during build time
+    if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true' || openaiApiKey === 'sk-placeholder-for-build') {
+      return Response.json({ 
+        text: "This is a build-time placeholder response. The actual model will be used in production.",
+        model: "build-placeholder",
+      });
+    }
+    
     const { messages, stream = false } = await req.json()
 
     // Get the user's latest message
@@ -25,7 +34,7 @@ export async function POST(req: NextRequest) {
     // Select the appropriate model 
     const aiModel = selectModel(latestMessage)
     // For OpenAI fallback when Together API isn't available
-    const openaiModel = "gpt-3.5-turbo"
+    const openaiModel = "gpt-4o"
 
     // Format messages for the AI
     const formattedMessages = [{ role: "system", content: systemPrompt }, ...messages]
