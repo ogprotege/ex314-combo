@@ -1,160 +1,121 @@
-import { NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-// Initialize Supabase client with service role key for full access
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, // Use service role for server operations
-)
+// Setup Supabase client with fallbacks for build time
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-for-build.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key-for-build';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-export async function POST(request: Request) {
+// Allowed tables for analytics beacons
+const ALLOWED_TABLES = ['page_views', 'chat_analytics', 'feature_usage', 'share_analytics'];
+
+export async function POST(req: NextRequest) {
   try {
-    const data = await request.json()
-    const { table, payload } = data
+    const data = await req.json()
+    const { table, event_type, ...eventData } = data
 
-    // Validate table name to prevent SQL injection
-    const validTables = ["sessions", "page_views"]
-
-    if (!validTables.includes(table)) {
-      return NextResponse.json({ error: "Invalid table name" }, { status: 400 })
+    // Validate the table name
+    if (!table || !ALLOWED_TABLES.includes(table)) {
+      return Response.json({ error: "Invalid table name" }, { status: 400 })
     }
 
-    console.log(`Attempting to insert into ${table}:`, payload)
-
-    // Validate and sanitize the payload based on the table
-    const sanitizedPayload = { ...payload }
-
-    if (table === "sessions") {
-      // Ensure required fields for sessions
-      if (!sanitizedPayload.session_id) {
-        return NextResponse.json({ error: "Missing required field: session_id" }, { status: 400 })
+    // Check for required fields based on table
+    if (table === 'page_views') {
+      // Page views require session_id
+      if (!eventData.session_id) {
+        return Response.json({ error: "Missing required field: session_id" }, { status: 400 })
       }
 
-      // Ensure timestamps are valid
-      if (!sanitizedPayload.first_visit_time) {
-        sanitizedPayload.first_visit_time = new Date().toISOString()
-      }
-
-      if (!sanitizedPayload.last_activity_time) {
-        sanitizedPayload.last_activity_time = new Date().toISOString()
-      }
-
-      // Ensure entry_page is not null
-      if (!sanitizedPayload.entry_page) {
-        sanitizedPayload.entry_page = "/"
-      }
-    }
-
-    if (table === "page_views") {
-      // Ensure required fields for page_views
-      if (!sanitizedPayload.session_id) {
-        return NextResponse.json({ error: "Missing required field: session_id" }, { status: 400 })
-      }
-
-      // Ensure page_path is not null
-      if (!sanitizedPayload.page_path) {
-        sanitizedPayload.page_path = "/"
-      }
-
-      // Ensure timestamp is valid
-      if (!sanitizedPayload.timestamp) {
-        sanitizedPayload.timestamp = new Date().toISOString()
-      }
-
-      // Remove any null or undefined values that might cause issues
-      Object.keys(sanitizedPayload).forEach((key) => {
-        if (sanitizedPayload[key] === null || sanitizedPayload[key] === undefined) {
-          delete sanitizedPayload[key]
-        }
-      })
-    }
-
-    // Try to insert with detailed error handling
-    try {
-      // First, check if the table exists by selecting from it
-      const { error: tableCheckError } = await supabase.from(table).select("*").limit(1)
-
-      if (tableCheckError && tableCheckError.code === "PGRST116") {
-        // Table doesn't exist
-        return NextResponse.json(
-          {
-            error: `Table ${table} does not exist. Please run the setup script first.`,
-            details: tableCheckError,
-          },
-          { status: 500 },
-        )
-      }
-
-      // If updating an existing record
-      if (sanitizedPayload.id) {
-        const { data: updatedData, error } = await supabase
-          .from(table)
-          .update(sanitizedPayload)
-          .eq("id", sanitizedPayload.id)
-          .select("id")
-          .single()
-
-        if (error) {
-          console.error(`Error updating ${table}:`, error)
-          return NextResponse.json(
-            {
-              error: `Failed to update data: ${error.message}`,
-              details: error,
-              code: error.code,
-              hint: error.hint,
-            },
-            { status: 500 },
-          )
-        }
-
-        return NextResponse.json({
-          success: true,
-          id: updatedData?.id,
-          message: "Record updated successfully",
+      // Insert page view data
+      const { error: insertError } = await supabase
+        .from(table)
+        .insert({
+          event_type: event_type || 'page_view',
+          url: eventData.url,
+          referrer: eventData.referrer,
+          session_id: eventData.session_id,
+          user_id: eventData.user_id,
+          browser: eventData.browser,
+          os: eventData.os,
+          device: eventData.device,
+          timestamp: new Date().toISOString(),
+          metadata: eventData.metadata || {}
         })
+
+      if (insertError) {
+        console.error("Error inserting page view:", insertError)
+        return Response.json({ error: "Failed to record page view", details: insertError.message }, { status: 500 })
       }
-      // If inserting a new record
-      else {
-        const { data: insertedData, error } = await supabase.from(table).insert(sanitizedPayload).select("id").single()
 
-        if (error) {
-          console.error(`Error inserting into ${table}:`, error)
-          return NextResponse.json(
-            {
-              error: `Failed to insert data: ${error.message}`,
-              details: error,
-              code: error.code,
-              hint: error.hint,
-              payload: sanitizedPayload,
-            },
-            { status: 500 },
-          )
-        }
+    } else if (table === 'chat_analytics') {
+      // Chat analytics require session_id
+      if (!eventData.session_id) {
+        return Response.json({ error: "Missing required field: session_id" }, { status: 400 })
+      }
 
-        return NextResponse.json({
-          success: true,
-          id: insertedData?.id,
-          message: "Record inserted successfully",
+      // Insert chat analytics data
+      const { error: insertError } = await supabase
+        .from(table)
+        .insert({
+          event_type: event_type || 'message',
+          session_id: eventData.session_id,
+          user_id: eventData.user_id,
+          chat_id: eventData.chat_id,
+          message_id: eventData.message_id,
+          model: eventData.model,
+          prompt_tokens: eventData.prompt_tokens,
+          completion_tokens: eventData.completion_tokens,
+          timestamp: new Date().toISOString(),
+          metadata: eventData.metadata || {}
         })
+
+      if (insertError) {
+        console.error("Error inserting chat analytics:", insertError)
+        return Response.json({ error: "Failed to record chat analytics", details: insertError.message }, { status: 500 })
       }
-    } catch (insertError) {
-      console.error(`Unexpected error during ${table} operation:`, insertError)
-      return NextResponse.json(
-        {
-          error: "Unexpected error during database operation",
-          details: insertError instanceof Error ? insertError.message : String(insertError),
-        },
-        { status: 500 },
-      )
+
+    } else if (table === 'feature_usage') {
+      // Insert feature usage data
+      const { error: insertError } = await supabase
+        .from(table)
+        .insert({
+          event_type: event_type || 'feature_use',
+          feature_name: eventData.feature_name,
+          session_id: eventData.session_id,
+          user_id: eventData.user_id,
+          timestamp: new Date().toISOString(),
+          metadata: eventData.metadata || {}
+        })
+
+      if (insertError) {
+        console.error("Error inserting feature usage:", insertError)
+        return Response.json({ error: "Failed to record feature usage", details: insertError.message }, { status: 500 })
+      }
+
+    } else if (table === 'share_analytics') {
+      // Insert share analytics data
+      const { error: insertError } = await supabase
+        .from(table)
+        .insert({
+          event_type: event_type || 'share',
+          platform: eventData.platform,
+          content_type: eventData.content_type,
+          content_id: eventData.content_id,
+          session_id: eventData.session_id,
+          user_id: eventData.user_id,
+          timestamp: new Date().toISOString(),
+          metadata: eventData.metadata || {}
+        })
+
+      if (insertError) {
+        console.error("Error inserting share analytics:", insertError)
+        return Response.json({ error: "Failed to record share analytics", details: insertError.message }, { status: 500 })
+      }
     }
+
+    return Response.json({ success: true })
   } catch (error) {
-    console.error("Error processing beacon request:", error)
-    return NextResponse.json(
-      {
-        error: "Invalid request",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 400 },
-    )
+    console.error("Beacon error:", error)
+    return Response.json({ error: "Internal server error" }, { status: 500 })
   }
 }

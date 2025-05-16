@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import { getAllSaints, getSaint } from "@/lib/saints-data"
 
-export async function GET(request: Request) {
+export async function GET(req: NextRequest) {
   // Get URL and params
-  const { searchParams } = new URL(request.url)
+  const { searchParams } = new URL(req.url)
   const id = searchParams.get("id")
   const feastDate = searchParams.get("feastDate")
   const type = searchParams.get("type")
@@ -15,9 +15,9 @@ export async function GET(request: Request) {
     if (id) {
       const saint = await getSaint(id)
       if (!saint) {
-        return NextResponse.json({ error: "Saint not found" }, { status: 404 })
+        return Response.json({ error: "Saint not found" }, { status: 404 })
       }
-      return NextResponse.json(saint)
+      return Response.json(saint)
     }
     
     // Otherwise, get all saints and filter
@@ -45,10 +45,10 @@ export async function GET(request: Request) {
       saints = saints.slice(0, limit)
     }
     
-    return NextResponse.json(saints)
+    return Response.json(saints)
   } catch (error) {
     console.error("Error fetching saints:", error)
-    return NextResponse.json(
+    return Response.json(
       { error: "Failed to fetch saints data" },
       { status: 500 }
     )

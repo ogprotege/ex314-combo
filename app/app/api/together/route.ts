@@ -1,74 +1,81 @@
-import { OpenAI } from 'openai';
-import { NextResponse } from 'next/server';
-import { getServiceSupabase } from '@/lib/supabaseClient';
+import { NextRequest } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-let together;
-if (process.env.TOGETHER_API_KEY) {
-  together = new OpenAI({
-    apiKey: process.env.TOGETHER_API_KEY,
-    baseURL: 'https://api.together.xyz/v1',
-  });
-}
+// Initialize Supabase for logging
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-for-build.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key-for-build';
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-export async function POST(req: Request) {
+// Together API configuration
+const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY;
+const TOGETHER_API_URL = 'https://api.together.xyz/v1/completions';
+
+export async function POST(req: NextRequest) {
   try {
-    const { messages, stream = false, user_id, chat_id } = await req.json();
+    const { messages, model = 'mistralai/Mixtral-8x7B-Instruct-v0.1', temperature = 0.7, max_tokens = 1000 } = await req.json();
 
-    if (!Array.isArray(messages)) {
-      return NextResponse.json({ error: 'Invalid messages array' }, { status: 400 });
-    }
-    
-    if (!together) {
-      return NextResponse.json({ error: 'Together API not configured' }, { status: 500 });
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return Response.json({ error: 'Invalid messages array' }, { status: 400 });
     }
 
-    const model = 'thebiscuit1/Llama-3.3-70B-32k-Instruct-Reference-ex314-ft-p1-round3-0daf7fe8';
+    if (!TOGETHER_API_KEY) {
+      return Response.json({ error: 'Together API not configured' }, { status: 500 });
+    }
 
-    const response = await together.chat.completions.create({
-      model,
-      messages,
-      max_tokens: 16384,
-      stream,
+    // Convert messages array to a prompt string
+    let prompt = '';
+    messages.forEach((message) => {
+      if (message.role === 'system') {
+        prompt += `System: ${message.content}\n\n`;
+      } else if (message.role === 'user') {
+        prompt += `User: ${message.content}\n\n`;
+      } else if (message.role === 'assistant') {
+        prompt += `Assistant: ${message.content}\n\n`;
+      }
     });
 
-    const assistantReply = response.choices[0]?.message?.content ?? '';
-
-    // ✅ Supabase logging
-    const supabase = getServiceSupabase();
-
-    if (user_id && chat_id) {
-      const now = new Date().toISOString();
-
-      // Insert user message(s)
-      const userMessages = messages
-        .filter((msg: any) => msg.role === 'user')
-        .map((msg: any) => ({
-          user_id,
-          chat_id,
-          role: msg.role,
-          content: msg.content,
-          timestamp: now,
-          model_used: model,
-        }));
-
-      // Insert assistant reply
-      const assistantMessage = {
-        user_id,
-        chat_id,
-        role: 'assistant',
-        content: assistantReply,
-        timestamp: new Date().toISOString(),
-        model_used: model,
-      };
-
-      await supabase.from('messages').insert([...userMessages, assistantMessage]);
+    // Add final assistant prefix to get response
+    prompt += 'Assistant: ';
+    
+    // Log the prompt to Supabase for debugging/analytics
+    if (supabaseUrl !== 'https://placeholder-for-build.supabase.co') {
+      try {
+        await supabase.from('ai_logs').insert({
+          provider: 'together',
+          model,
+          messages,
+          temperature,
+          max_tokens,
+          created_at: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('Failed to log prompt:', error);
+      }
     }
 
-    return NextResponse.json({
-      result: assistantReply,
+    // Make API call to Together
+    const response = await fetch(TOGETHER_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${TOGETHER_API_KEY}`
+      },
+      body: JSON.stringify({
+        model,
+        prompt,
+        temperature,
+        max_tokens,
+        stop: ['\nUser:', '\nSystem:']
+      })
+    });
+
+    const data = await response.json();
+    
+    return Response.json({
+      text: data.choices?.[0]?.text || ''
     });
   } catch (err: any) {
     console.error('[Together API Error]', err);
-    return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
+    return Response.json({ error: err.message || 'Server error' }, { status: 500 });
   }
 }

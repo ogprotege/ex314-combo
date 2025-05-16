@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json(
+      return Response.json(
         {
           error: "Missing Supabase credentials",
         },
@@ -71,7 +71,7 @@ export async function GET(request: Request) {
 
     const pageViewsResult = await pageViewsResponse.json()
 
-    return NextResponse.json({
+    return Response.json({
       success: true,
       message: "Tables setup completed",
       sessionsResult,
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error("Error setting up tables:", error)
-    return NextResponse.json(
+    return Response.json(
       {
         error: "Failed to set up tables",
         details: error instanceof Error ? error.message : String(error),

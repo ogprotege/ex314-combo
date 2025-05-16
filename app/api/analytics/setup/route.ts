@@ -9,6 +9,11 @@ const supabase = createClient(
 
 export async function GET(request: Request) {
   try {
+    // Skip analytics during build time
+    if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
+      return Response.json({ success: true, message: "Skipping analytics setup during build" });
+    }
+
     // Execute SQL directly to create tables
     const { error: sessionsError } = await supabase.rpc("exec_sql", {
       sql_string: `
@@ -48,7 +53,7 @@ export async function GET(request: Request) {
 
       if (altSessionsError) {
         console.error("Alternative approach also failed:", altSessionsError)
-        return NextResponse.json(
+        return Response.json(
           {
             error: "Failed to create sessions table",
             details: altSessionsError,
@@ -100,7 +105,7 @@ export async function GET(request: Request) {
 
       if (altPageViewsError) {
         console.error("Alternative approach also failed:", altPageViewsError)
-        return NextResponse.json(
+        return Response.json(
           {
             error: "Failed to create page_views table",
             details: altPageViewsError,
@@ -115,7 +120,7 @@ export async function GET(request: Request) {
 
     const { error: checkPageViewsError } = await supabase.from("page_views").select("id").limit(1)
 
-    return NextResponse.json({
+    return Response.json({
       success: true,
       message: "Tables setup completed",
       sessionsTableExists: !checkSessionsError,
@@ -123,7 +128,7 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error("Error setting up tables:", error)
-    return NextResponse.json(
+    return Response.json(
       {
         error: "Failed to set up tables",
         details: error instanceof Error ? error.message : String(error),

@@ -1,4 +1,4 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { type NextRequest } from "next/server"
 import { OpenAI } from "openai"
 import { selectModel } from "@/lib/ai-config"
 
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
           messages: formattedMessages
         });
 
-        return NextResponse.json({ text: completion.choices[0].message.content });
+        return Response.json({ text: completion.choices[0].message.content });
       } catch (error) {
         console.error("Error with Together AI, falling back to OpenAI:", error);
         
@@ -75,11 +75,11 @@ export async function POST(req: NextRequest) {
           messages: formattedMessages
         });
 
-        return NextResponse.json({ text: completion.choices[0].message.content });
+        return Response.json({ text: completion.choices[0].message.content });
       }
     }
   } catch (error) {
     console.error("Error in chat completion:", error)
-    return NextResponse.json({ error: "An error occurred during chat completion" }, { status: 500 })
+    return Response.json({ error: "An error occurred during chat completion" }, { status: 500 })
   }
 }

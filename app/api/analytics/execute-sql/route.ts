@@ -1,49 +1,50 @@
-import { NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-// Initialize Supabase client with service role key for full access
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, // Use service role for server operations
-)
+// Initialize Supabase with fallbacks for build time
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-for-build.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key-for-build';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { sql } = await request.json()
-
-    if (!sql) {
-      return NextResponse.json({ error: "No SQL provided" }, { status: 400 })
+    // Skip during build time
+    if (supabaseUrl === 'https://placeholder-for-build.supabase.co') {
+      return Response.json({
+        success: false,
+        message: "Running in build environment, skipping database operations"
+      });
     }
-
-    // Execute the SQL using the Supabase client
+    
+    const { sql } = await req.json()
+    
+    if (!sql) {
+      return Response.json({ error: "No SQL provided" }, { status: 400 })
+    }
+    
+    // Execute the SQL using Supabase's stored procedure
     const { data, error } = await supabase.rpc("exec_sql", {
       sql_string: sql,
     })
-
+    
     if (error) {
       console.error("Error executing SQL:", error)
-      return NextResponse.json(
-        {
-          error: `Failed to execute SQL: ${error.message}`,
-          details: error,
-        },
-        { status: 500 },
-      )
+      return Response.json({
+        success: false,
+        error: error.message,
+        details: error
+      }, { status: 500 })
     }
-
-    return NextResponse.json({
+    
+    return Response.json({
       success: true,
-      message: "SQL executed successfully",
-      data,
+      result: data
     })
   } catch (error) {
-    console.error("Error executing SQL:", error)
-    return NextResponse.json(
-      {
-        error: "Failed to execute SQL",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    )
+    console.error("Error in execute-sql endpoint:", error)
+    return Response.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : String(error) 
+    }, { status: 500 })
   }
 }

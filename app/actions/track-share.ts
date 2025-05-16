@@ -6,8 +6,10 @@ import { cookies } from "next/headers"
 import { auth } from "@clerk/nextjs/server"
 import { UAParser } from "ua-parser-js"
 
-// Initialize Supabase client with service role key for server operations
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+// Initialize Supabase with fallbacks for build time
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-for-build.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key-for-build';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export type SharePlatform = "facebook" | "twitter" | "linkedin" | "whatsapp" | "email" | "copy" | "embed"
 
@@ -38,6 +40,15 @@ export async function trackShareEvent(
   contentShared?: Partial<ContentShared>,
 ) {
   try {
+    // Skip during build time
+    if (supabaseUrl === 'https://placeholder-for-build.supabase.co' || 
+        process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
+      return { 
+        success: false, 
+        message: "Running in build environment, skipping database operations" 
+      };
+    }
+    
     // Get basic request info for analytics
     const headersList = headers()
     const cookieStore = cookies()
@@ -109,6 +120,15 @@ export async function getShareAnalytics(
   includeConversationData = false,
 ) {
   try {
+    // Skip during build time
+    if (supabaseUrl === 'https://placeholder-for-build.supabase.co' || 
+        process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
+      return { 
+        success: false, 
+        message: "Running in build environment, skipping database operations" 
+      };
+    }
+    
     // Calculate date range based on timeframe
     let startDate: Date | null = null
     const now = new Date()
@@ -199,6 +219,15 @@ export async function getShareAnalytics(
 
 export async function exportShareAnalyticsForTraining(startDate?: string, endDate?: string) {
   try {
+    // Skip during build time
+    if (supabaseUrl === 'https://placeholder-for-build.supabase.co' || 
+        process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
+      return { 
+        success: false, 
+        message: "Running in build environment, skipping database operations" 
+      };
+    }
+    
     const { data, error } = await supabase.rpc("export_share_analytics_for_training", {
       start_date: startDate ? new Date(startDate).toISOString() : null,
       end_date: endDate ? new Date(endDate).toISOString() : null,

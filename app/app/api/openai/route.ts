@@ -1,5 +1,5 @@
 import { OpenAI } from 'openai';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 // Server-side only — NEVER use in client code!
 let openai;
@@ -15,11 +15,11 @@ export async function POST(req: NextRequest) {
     const { messages, model = 'gpt-3.5-turbo', max_tokens = 1000 } = await req.json();
 
     if (!Array.isArray(messages) || messages.length === 0) {
-      return NextResponse.json({ error: 'Missing or invalid messages' }, { status: 400 });
+      return Response.json({ error: 'Missing or invalid messages' }, { status: 400 });
     }
     
     if (!openai) {
-      return NextResponse.json({ error: 'OpenAI API not configured' }, { status: 500 });
+      return Response.json({ error: 'OpenAI API not configured' }, { status: 500 });
     }
 
     const chatResponse = await openai.chat.completions.create({
@@ -28,11 +28,11 @@ export async function POST(req: NextRequest) {
       max_tokens,
     });
 
-    return NextResponse.json({
+    return Response.json({
       result: chatResponse.choices[0].message?.content ?? '',
     });
   } catch (err: any) {
     console.error('[OpenAI Error]', err);
-    return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
+    return Response.json({ error: err.message || 'Server error' }, { status: 500 });
   }
 }

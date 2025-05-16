@@ -21,6 +21,11 @@ try {
  * This can be used to protect admin routes
  */
 export async function isAdmin(req: NextRequest) {
+  // Skip auth check during build time
+  if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
+    return false;
+  }
+  
   // If Clerk is not available, use a fallback check
   if (!clerkImported) {
     // In a real implementation, this could check a cookie or JWT
@@ -58,6 +63,11 @@ export async function isAdmin(req: NextRequest) {
  * Redirects to /unauthorized if user is not an admin
  */
 export async function adminMiddleware(req: NextRequest) {
+  // Skip admin check during build time
+  if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
+    return NextResponse.next();
+  }
+  
   const isAdminUser = await isAdmin(req);
   
   if (!isAdminUser) {

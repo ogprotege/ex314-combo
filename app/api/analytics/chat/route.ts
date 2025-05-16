@@ -1,50 +1,50 @@
-import { NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-// Initialize Supabase client with service role key for full access
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+// Setup Supabase client with fallbacks for build time
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-for-build.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key-for-build';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const data = await request.json()
-    const { session_id, chat_id, event_type, event_data } = data
-
-    // Validate required fields
-    if (!session_id || !chat_id || !event_type) {
-      return NextResponse.json(
-        { error: "Missing required fields: session_id, chat_id, and event_type are required" },
-        { status: 400 },
-      )
+    // Skip during build time
+    if (supabaseUrl === 'https://placeholder-for-build.supabase.co') {
+      return Response.json({
+        success: false,
+        message: "Running in build environment, skipping database operations"
+      });
     }
 
-    // Insert the chat analytics event
-    const { data: insertedData, error } = await supabase
-      .from("chat_analytics")
-      .insert({
-        session_id,
-        chat_id,
-        event_type,
-        event_data,
-        timestamp: new Date().toISOString(),
-      })
-      .select("id")
-      .single()
-
+    const data = await req.json()
+    
+    // Insert chat analytics data
+    const { error } = await supabase.from('chat_analytics').insert({
+      chat_id: data.chat_id,
+      user_id: data.user_id,
+      session_id: data.session_id,
+      event_type: data.event_type,
+      message_content: data.message_content,
+      message_role: data.message_role,
+      model: data.model,
+      tokens: data.tokens,
+      timestamp: new Date().toISOString(),
+      platform: data.platform,
+      browser: data.browser,
+      os: data.os,
+    })
+    
     if (error) {
       console.error("Error inserting chat analytics:", error)
-      return NextResponse.json({ error: `Failed to insert chat analytics: ${error.message}` }, { status: 500 })
+      return Response.json({ error: `Failed to insert chat analytics: ${error.message}` }, { status: 500 })
     }
-
-    return NextResponse.json({
+    
+    return Response.json({
       success: true,
-      id: insertedData?.id,
-      message: "Chat analytics event recorded successfully",
+      message: "Chat analytics recorded successfully"
     })
   } catch (error) {
-    console.error("Error processing chat analytics request:", error)
-    return NextResponse.json(
-      { error: "Invalid request", details: error instanceof Error ? error.message : String(error) },
-      { status: 400 },
-    )
+    console.error("Error processing chat analytics:", error)
+    return Response.json({ error: "Failed to process analytics" }, { status: 500 })
   }
 }

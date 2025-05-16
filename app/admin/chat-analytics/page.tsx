@@ -16,10 +16,23 @@ export default function ChatAnalyticsDashboard() {
       try {
         setLoading(true)
 
-        // Initialize Supabase client
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        const supabase = createClient(supabaseUrl, supabaseAnonKey)
+        // Initialize Supabase client with fallbacks
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-for-build.supabase.co';
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key-for-build';
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        
+        // Skip database operations during build time
+        if (supabaseUrl === 'https://placeholder-for-build.supabase.co' || 
+            process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
+          setChatStats({
+            summary: [],
+            totalChats: 0,
+            totalMessages: 0,
+            uniqueUsers: 0
+          });
+          setLoading(false);
+          return;
+        }
 
         // Calculate date range based on timeframe
         const now = new Date()

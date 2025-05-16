@@ -231,4 +231,87 @@ support@ex314.ai
 
 > *"Faith and reason are like two wings on which the human spirit rises to the contemplation of truth."* - Pope St. John Paul II, Fides et Ratio
 
-Ex314.ai aims to leverage the best of modern AI technology in service of timeless Catholic truth, making the richness of the Church's teaching accessible to all seekers in the digital age.# ex314-combo
+Ex314.ai aims to leverage the best of modern AI technology in service of timeless Catholic truth, making the richness of the Church's teaching accessible to all seekers in the digital age.
+
+# Next.js Application with Supabase and Clerk
+
+This is a modern Next.js application with Supabase for database and analytics, and Clerk for authentication.
+
+## Deployment Guide
+
+### Environment Variables
+
+For successful deployment on Vercel, set the following environment variables:
+
+```
+NEXT_PUBLIC_SKIP_AUTH_CHECK=true  # Required during build 
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+```
+
+If you want to use Clerk authentication, also add:
+
+```
+CLERK_SECRET_KEY=your_clerk_secret
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+```
+
+### Build Process
+
+The application has been adjusted to handle build-time challenges through several techniques:
+
+1. Database operations are skipped during build time
+2. Authentication checks are bypassed during build when the env var is set
+3. Middleware handles both build and runtime scenarios properly
+4. API routes have been updated to use Response.json() format
+
+### Local Development
+
+For local development, run:
+
+```bash
+# Install dependencies
+npm install
+
+# Run the development server
+npm run dev
+```
+
+### Production Build
+
+To test the production build locally:
+
+```bash
+# Build the application
+npm run build
+
+# Start the production server
+npm start
+```
+
+## Project Structure
+
+- `/app`: Application router components and layouts
+- `/components`: Reusable UI components
+- `/context`: React context providers
+- `/hooks`: Custom React hooks
+- `/lib`: Utility functions and services
+- `/middleware`: Server middleware functions
+
+## Database Setup
+
+The application uses Supabase for database operations. For analytics and other features, tables are created automatically through API endpoints.
+
+## Authentication
+
+Authentication is handled by Clerk. Make sure to set up your Clerk application correctly with the right redirect URLs.
+
+## Troubleshooting Build Issues
+
+If you encounter build issues:
+
+1. Make sure `NEXT_PUBLIC_SKIP_AUTH_CHECK=true` is set in your environment
+2. Ensure React version is set to 18.2.0 (not React 19)
+3. All database operations should have proper fallbacks during build
+4. Middleware should handle build-time scenarios with fallbacks

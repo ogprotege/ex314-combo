@@ -1,91 +1,98 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
-export async function GET(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    // Get the Supabase URL and key from environment variables
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const { supabaseUrl, supabaseKey } = await request.json()
 
     if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json(
+      return Response.json(
         {
           error: "Missing Supabase credentials",
         },
-        { status: 500 },
+        { status: 400 }
       )
     }
 
-    // SQL to create tables
-    const sql = `
-      -- Create sessions table
-      CREATE TABLE IF NOT EXISTS sessions (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        session_id TEXT NOT NULL,
-        first_visit_time TIMESTAMPTZ NOT NULL,
-        last_activity_time TIMESTAMPTZ NOT NULL,
-        ip_address TEXT,
-        entry_page TEXT NOT NULL,
-        is_returning BOOLEAN DEFAULT false
-      );
-      
-      CREATE INDEX IF NOT EXISTS idx_sessions_session_id ON sessions(session_id);
-      
-      -- Create page_views table
-      CREATE TABLE IF NOT EXISTS page_views (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        session_id TEXT NOT NULL,
-        page_path TEXT NOT NULL,
-        page_title TEXT,
-        timestamp TIMESTAMPTZ NOT NULL,
-        time_on_page INTEGER,
-        exit_page BOOLEAN DEFAULT false,
-        referrer_page TEXT,
-        query_params JSONB
-      );
-      
-      CREATE INDEX IF NOT EXISTS idx_page_views_session_id ON page_views(session_id);
-    `
-
-    // Execute SQL directly using the REST API
-    const response = await fetch(`${supabaseUrl}/rest/v1/`, {
+    // Create sessions table
+    const sessionsResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         apikey: supabaseKey,
         Authorization: `Bearer ${supabaseKey}`,
-        Prefer: "return=minimal",
       },
       body: JSON.stringify({
-        query: sql,
+        sql_string: `
+          CREATE TABLE IF NOT EXISTS sessions (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            session_id TEXT NOT NULL,
+            first_visit_time TIMESTAMPTZ NOT NULL,
+            last_activity_time TIMESTAMPTZ NOT NULL,
+            ip_address TEXT,
+            entry_page TEXT NOT NULL,
+            is_returning BOOLEAN DEFAULT false
+          );
+          
+          CREATE INDEX IF NOT EXISTS idx_sessions_session_id ON sessions(session_id);
+        `,
       }),
     })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      return NextResponse.json(
+    const sessionsResult = await sessionsResponse.json()
+
+    if (sessionsResponse.status !== 200) {
+      return Response.json(
         {
-          error: "Failed to create tables",
-          details: errorText,
-          status: response.status,
-          statusText: response.statusText,
+          error: "Failed to create sessions table",
+          details: sessionsResult,
         },
-        { status: 500 },
+        { status: 500 }
       )
     }
 
-    return NextResponse.json({
+    // Create page_views table 
+    const pageViewsResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        sql_string: `
+          CREATE TABLE IF NOT EXISTS page_views (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            session_id TEXT NOT NULL,
+            page_path TEXT NOT NULL,
+            page_title TEXT,
+            timestamp TIMESTAMPTZ NOT NULL,
+            time_on_page INTEGER,
+            exit_page BOOLEAN DEFAULT false,
+            referrer_page TEXT,
+            query_params JSONB
+          );
+          
+          CREATE INDEX IF NOT EXISTS idx_page_views_session_id ON page_views(session_id);
+        `,
+      }),
+    })
+
+    const pageViewsResult = await pageViewsResponse.json()
+
+    return Response.json({
       success: true,
-      message: "Tables created successfully",
+      message: "Tables setup completed",
+      sessionsResult,
+      pageViewsResult,
     })
   } catch (error) {
-    console.error("Error creating tables:", error)
-    return NextResponse.json(
+    console.error("Error setting up tables:", error)
+    return Response.json(
       {
-        error: "Failed to create tables",
+        error: "Failed to set up tables",
         details: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
       },
-      { status: 500 },
+      { status: 500 }
     )
   }
 }

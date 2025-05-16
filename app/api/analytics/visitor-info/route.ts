@@ -1,19 +1,19 @@
-import { NextResponse } from "next/server"
+import { NextRequest } from "next/server"
+import { UAParser } from "ua-parser-js"
 
-export async function GET(request: Request) {
+export async function GET(req: NextRequest) {
   try {
-    // Get IP address from request headers
-    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1"
-
-    // For privacy reasons, we're not doing a real IP lookup
-    return NextResponse.json({
-      ip: ip,
-      country: "Unknown",
-      region: "Unknown",
-      city: "Unknown",
+    const userAgent = req.headers.get("user-agent") || ""
+    const parser = new UAParser(userAgent)
+    
+    return Response.json({
+      browser: parser.getBrowser(),
+      device: parser.getDevice(),
+      os: parser.getOS(),
+      userAgent
     })
   } catch (error) {
-    console.error("Error getting visitor info:", error)
-    return NextResponse.json({ error: "Failed to get visitor info" }, { status: 500 })
+    console.error("Error analyzing visitor info:", error)
+    return Response.json({ error: "Failed to get visitor info" }, { status: 500 })
   }
 }

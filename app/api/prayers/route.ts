@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 
 // Define prayer types
 type Prayer = {
@@ -51,39 +51,51 @@ const prayers: Prayer[] = [
     category: "penitential",
     language: "english",
     tags: ["confession", "reconciliation"]
+  },
+  {
+    id: "memorare",
+    title: "Memorare",
+    text: "Remember, O most gracious Virgin Mary, that never was it known that anyone who fled to thy protection, implored thy help, or sought thine intercession was left unaided. Inspired by this confidence, I fly unto thee, O Virgin of virgins, my mother; to thee do I come, before thee I stand, sinful and sorrowful. O Mother of the Word Incarnate, despise not my petitions, but in thy mercy hear and answer me. Amen.",
+    category: "marian",
+    language: "english",
+    tags: ["marian"]
   }
 ]
 
-export async function GET(request: Request) {
-  // Get URL and params
-  const { searchParams } = new URL(request.url)
-  const id = searchParams.get("id")
-  const category = searchParams.get("category")
-  const tag = searchParams.get("tag")
-  const search = searchParams.get("search")?.toLowerCase()
-  const limit = parseInt(searchParams.get("limit") || "0")
-  
+export async function GET(req: NextRequest) {
   try {
-    // If an ID is provided, return just that prayer
+    const url = new URL(req.url)
+    const id = url.searchParams.get("id")
+    const category = url.searchParams.get("category")
+    const tag = url.searchParams.get("tag")
+    const search = url.searchParams.get("search")?.toLowerCase()
+    const limit = parseInt(url.searchParams.get("limit") || "0")
+    
+    // Get a specific prayer by ID
     if (id) {
-      const prayer = prayers.find(p => p.id === id)
+      const prayer = prayers.find((p) => p.id === id)
+      
       if (!prayer) {
-        return NextResponse.json({ error: "Prayer not found" }, { status: 404 })
+        return Response.json({ error: "Prayer not found" }, { status: 404 })
       }
-      return NextResponse.json(prayer)
+      
+      return Response.json(prayer)
     }
     
     // Otherwise, filter prayers based on query parameters
     let filteredPrayers = [...prayers]
     
+    // Filter by category
     if (category) {
-      filteredPrayers = filteredPrayers.filter(p => p.category === category)
+      filteredPrayers = filteredPrayers.filter((p) => p.category === category)
     }
     
+    // Filter by tag
     if (tag) {
-      filteredPrayers = filteredPrayers.filter(p => p.tags.includes(tag))
+      filteredPrayers = filteredPrayers.filter((p) => p.tags.includes(tag))
     }
     
+    // Filter by search term
     if (search) {
       filteredPrayers = filteredPrayers.filter(p => 
         p.title.toLowerCase().includes(search) || 
@@ -96,10 +108,10 @@ export async function GET(request: Request) {
       filteredPrayers = filteredPrayers.slice(0, limit)
     }
     
-    return NextResponse.json(filteredPrayers)
+    return Response.json(filteredPrayers)
   } catch (error) {
     console.error("Error fetching prayers:", error)
-    return NextResponse.json(
+    return Response.json(
       { error: "Failed to fetch prayer data" },
       { status: 500 }
     )
