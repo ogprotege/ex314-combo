@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useChat } from '../context/ChatContext';
+import { useChat } from '@/context/ChatContext';
 import { XIcon } from 'lucide-react';
 
 type Filter = 'all' | 'starred' | 'archived' | 'deleted';

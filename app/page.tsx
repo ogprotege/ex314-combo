@@ -7,9 +7,67 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { SaintOfDay } from "@/components/saint-of-day"
 import { Facebook, Twitter, Instagram, Github, Mail } from "lucide-react"
 import { useAuth } from "../hooks/use-auth"
+import { useEffect, useState } from 'react'
+import { useSession, useUser } from '@clerk/nextjs'
+import { createClient } from '@supabase/supabase-js'
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
+  
+  // Clerk-Supabase integration
+  const [tasks, setTasks] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [name, setName] = useState('')
+  
+  // The `useUser()` hook ensures that Clerk has loaded data about the signed in user
+  const { user } = useUser()
+  
+  // The `useSession()` hook gets the Clerk session object for the session token
+  const { session } = useSession()
+
+  // Create a custom Supabase client that injects the Clerk session token into request headers
+  function createClerkSupabaseClient() {
+    return createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        async accessToken() {
+          return session?.getToken() ?? null
+        },
+      },
+    )
+  }
+
+  // Create a `client` object for accessing Supabase data using the Clerk token
+  const client = createClerkSupabaseClient()
+  
+  // This `useEffect` will wait for the User object to be loaded before requesting
+  // the tasks for the signed in user
+  useEffect(() => {
+    if (!user) return
+
+    async function loadTasks() {
+      setLoading(true)
+      const { data, error } = await client.from('tasks').select()
+      if (!error) setTasks(data || [])
+      setLoading(false)
+    }
+
+    loadTasks()
+  }, [user])
+
+  async function createTask(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    // Insert task into the "tasks" database
+    await client.from('tasks').insert({
+      name,
+    })
+    setName('')
+    
+    // Reload tasks
+    const { data } = await client.from('tasks').select()
+    if (data) setTasks(data)
+  }
 
   return (
     <main className="min-h-screen flex flex-col">

@@ -1,8 +1,8 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { useAuth } from "../../hooks/use-fallback-auth"
+import { useAuth } from "@/hooks/use-fallback-auth"
 
 export default function EnvironmentDiagnosticsPage() {
   // Call useAuth to ensure it works in this component

@@ -1,6 +1,6 @@
 import { OpenAI } from 'openai';
 import { NextResponse } from 'next/server';
-import { getServiceSupabase } from '../../../lib/supabaseClient';
+import { getServiceSupabase } from '@/lib/supabaseClient';
 
 let together;
 if (process.env.TOGETHER_API_KEY) {

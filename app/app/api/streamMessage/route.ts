@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { ChatService } from '../../../lib/services/chatService';
-import { MessageSchema } from '../../../lib/validation/messageSchema';
+import { ChatService } from '@/lib/services/chatService';
+import { MessageSchema } from '@/lib/validation/messageSchema';
 
 const BodySchema = z.object({
   message: z.string().min(1),

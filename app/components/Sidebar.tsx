@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
-import { SidebarSection } from './SidebarSection';
-import { UserProfile } from './UserProfile';
-import { useChat } from '../context/ChatContext';
+import { SidebarSection } from '@/components/SidebarSection';
+import { UserProfile } from '@/components/UserProfile';
+import { useChat } from '@/context/ChatContext';
 
 interface SidebarProps {
   isCollapsed: boolean;
