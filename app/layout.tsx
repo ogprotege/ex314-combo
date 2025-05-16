@@ -12,6 +12,7 @@ import Script from "next/script"
 import { AuthButtons } from "@/components/auth-buttons"
 import { AuthProvider } from "@/context/AuthContext"
 import { ChatProvider } from "@/context/ChatContext"
+import { ChiRho } from "@/components/chi-rho"
 
 // Create a fallback for ClerkProvider
 let ClerkProvider: React.FC<{children: React.ReactNode}> = ({ children }) => <>{children}</>
@@ -69,12 +70,13 @@ export default function RootLayout({
                 <LiturgicalThemeProvider>
                   <Suspense fallback={<div>Loading...</div>}>
                     <header className="border-b bg-background sticky top-0 z-50">
-                      <div className="container flex h-16 items-center justify-between px-4">
-                        <div className="flex items-center gap-2">
-                          <Link href="/" className="flex items-center space-x-2">
-                            <span className="font-semibold">Ex314.ai</span>
+                      <div className="container flex h-24 items-center justify-between px-4">
+                        <div className="flex items-center gap-6">
+                          <Link href="/" className="flex flex-col items-center text-center">
+                            <ChiRho className="h-12 w-12 mb-1" />
+                            <span className="text-3xl font-bold tracking-tight">Ex314.ai</span>
                           </Link>
-                          <nav className="hidden md:flex items-center gap-6 text-sm">
+                          <nav className="hidden md:flex items-center gap-6 text-sm ml-6">
                             <Link href="/prayers" className="transition-colors hover:text-primary">
                               Prayers
                             </Link>
