@@ -19,4 +19,4 @@ export const getServiceSupabase = () => {
   }
 
   return createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey || 'placeholder-key-for-build');
-};
+}; 

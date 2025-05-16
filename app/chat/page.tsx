@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Sidebar } from '@/components/Sidebar';
-import { InitialView } from '@/components/InitialView';
-import { ChatView } from '@/components/ChatView';
-import { Header } from '@/components/Header';
+import { Sidebar } from '@/components/chat/Sidebar';
+import { InitialView } from '@/components/chat/InitialView';
+import { ChatView } from '@/components/chat/ChatView';
+import { Header } from '@/components/chat/Header';
 import { useRouter } from 'next/navigation';
 import type { Message } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
@@ -39,14 +39,14 @@ export default function Home() {
   };
 
   const chatContext = useChat();
-  const { sendMessage: contextSendMessage, isLoading: chatLoading, messages: chatMessages, activeChatId, newChat } = chatContext;
+  const { sendMessage: contextSendMessage, isLoading: chatLoading, messages: chatMessages, currentChatId, newChat } = chatContext;
   
   useEffect(() => {
-    if (isAuthenticated && !chatLoading && !activeChatId) {
+    if (isAuthenticated && !chatLoading && !currentChatId) {
       // If authenticated and no active chat, create a new one
       newChat();
     }
-  }, [isAuthenticated, chatLoading, activeChatId, newChat]);
+  }, [isAuthenticated, chatLoading, currentChatId, newChat]);
   
   
   const handleSendMessage = async (content: string) => {

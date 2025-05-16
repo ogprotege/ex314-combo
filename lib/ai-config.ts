@@ -1,5 +1,4 @@
 import { createTogetherAI } from "@ai-sdk/togetherai"
-import { wrapLanguageModel, extractReasoningMiddleware } from "ai"
 
 // Create the Together.ai provider instance
 export const togetherai = createTogetherAI({
@@ -7,16 +6,10 @@ export const togetherai = createTogetherAI({
 })
 
 // Create a standard model for general chat
-export const chatModel = togetherai("meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo")
-
-// Create a reasoning model that exposes thinking
-export const reasoningModel = wrapLanguageModel({
-  model: togetherai("deepseek-ai/DeepSeek-R1"),
-  middleware: extractReasoningMiddleware({ tagName: "think" }),
-})
+export const chatModel = togetherai("meta-llama/Meta-Llama-3.3-70B-Instruct-Turbo")
 
 // Create a theological model for religious questions
-export const theologicalModel = togetherai("mistralai/Mixtral-8x22B-Instruct-v0.1")
+export const theologicalModel = togetherai("Qwen/Qwen3-235B-A22B-fp8-tput")
 
 // Helper function to select the appropriate model based on content
 export function selectModel(content: string) {
@@ -54,17 +47,8 @@ export function selectModel(content: string) {
   // Check if content contains theological keywords
   const isTheological = theologicalKeywords.some((keyword) => lowerContent.includes(keyword.toLowerCase()))
 
-  // Check if content is asking for reasoning or explanation
-  const isReasoning =
-    lowerContent.includes("explain") ||
-    lowerContent.includes("why") ||
-    lowerContent.includes("how does") ||
-    lowerContent.includes("reasoning")
-
   if (isTheological) {
     return theologicalModel
-  } else if (isReasoning) {
-    return reasoningModel
   } else {
     return chatModel
   }

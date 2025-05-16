@@ -3,10 +3,22 @@ import { createClient } from "@supabase/supabase-js"
 import fs from "fs"
 import path from "path"
 
+// Provide fallback values for build time
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-for-build.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key-for-build';
+
 // Initialize Supabase client with service role key for full access
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function GET(request: Request) {
+  // Check if we're using placeholder values and exit early
+  if (supabaseUrl === 'https://placeholder-for-build.supabase.co') {
+    return NextResponse.json({
+      success: false,
+      message: "Running in build environment, skipping database operations",
+    });
+  }
+
   try {
     // Read the SQL file
     const sqlFilePath = path.join(process.cwd(), "app/api/analytics/share-analytics-table.sql")

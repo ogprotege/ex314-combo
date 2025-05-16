@@ -3,14 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 // Create a fallback mechanism if Clerk is not available
 let clerkImported = false;
 let clerkClient: any = null;
-let auth: any = null;
+let getAuth: any = null;
 
 try {
   // Try to import Clerk
   const clerkServer = require("@clerk/nextjs/server");
-  const clerkAuth = require("@clerk/nextjs");
   clerkClient = clerkServer.clerkClient;
-  auth = clerkAuth.auth;
+  getAuth = clerkServer.getAuth;
   clerkImported = true;
 } catch (e) {
   console.warn("Clerk auth not available in middleware, using fallback auth");
@@ -32,7 +31,7 @@ export async function isAdmin(req: NextRequest) {
   }
 
   // Clerk is available, check for admin role
-  const { userId } = auth();
+  const { userId } = getAuth(req);
 
   // Not authenticated
   if (!userId) {
