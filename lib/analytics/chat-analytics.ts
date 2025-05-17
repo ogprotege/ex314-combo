@@ -1,10 +1,11 @@
-import { trackFeatureUsage, trackContentView } from "@/app/lib/analytics"
+import { trackEvent } from "@/lib/analytics"
 
 /**
  * Track when a user starts a new chat session
  */
 export function trackNewChat(chatId: string) {
-  trackFeatureUsage("new_chat", {
+  trackEvent({
+    event_type: "new_chat",
     chat_id: chatId,
     timestamp: new Date().toISOString(),
   })
@@ -17,7 +18,8 @@ export function trackNewChat(chatId: string) {
  * @param messageLength The length of the message
  */
 export function trackMessage(chatId: string, messageType: "user" | "assistant", messageLength: number) {
-  trackFeatureUsage("chat_message", {
+  trackEvent({
+    event_type: "chat_message",
     chat_id: chatId,
     message_type: messageType,
     message_length: messageLength,
@@ -31,7 +33,13 @@ export function trackMessage(chatId: string, messageType: "user" | "assistant", 
  * @param chatTitle The title of the chat
  */
 export function trackChatView(chatId: string, chatTitle: string) {
-  trackContentView("chat", chatId, chatTitle || "Untitled Chat")
+  trackEvent({
+    event_type: "content_view",
+    content_type: "chat",
+    content_id: chatId,
+    content_title: chatTitle || "Untitled Chat",
+    timestamp: new Date().toISOString()
+  })
 }
 
 /**
@@ -40,7 +48,8 @@ export function trackChatView(chatId: string, chatTitle: string) {
  * @param details Additional details about the feature usage
  */
 export function trackChatFeature(featureName: string, details: any = {}) {
-  trackFeatureUsage(`chat_feature_${featureName}`, {
+  trackEvent({
+    event_type: `chat_feature_${featureName}`,
     ...details,
     timestamp: new Date().toISOString(),
   })
@@ -53,7 +62,8 @@ export function trackChatFeature(featureName: string, details: any = {}) {
  * @param resultsCount Number of results found
  */
 export function trackMessageSearch(chatId: string, searchTerm: string, resultsCount: number) {
-  trackFeatureUsage("message_search", {
+  trackEvent({
+    event_type: "message_search",
     chat_id: chatId,
     search_term: searchTerm,
     results_count: resultsCount,
