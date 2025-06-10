@@ -17,12 +17,6 @@ export default function EnvironmentDiagnosticsPage() {
     { name: "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL", value: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL, sensitive: false },
   ]
 
-  // Supabase Environment Variables
-  const supabaseVariables = [
-    { name: "NEXT_PUBLIC_SUPABASE_URL", value: process.env.NEXT_PUBLIC_SUPABASE_URL, sensitive: false },
-    { name: "NEXT_PUBLIC_SUPABASE_ANON_KEY", value: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, sensitive: true },
-    { name: "SUPABASE_SERVICE_ROLE_KEY", value: process.env.SUPABASE_SERVICE_ROLE_KEY, sensitive: true },
-  ]
 
   // Turnstile Environment Variables
   const turnstileVariables = [
@@ -157,40 +151,6 @@ export default function EnvironmentDiagnosticsPage() {
           </CardContent>
         </Card>
 
-        {/* Supabase Variables */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Supabase Configuration</CardTitle>
-            <CardDescription>Environment variables for Supabase database and analytics</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="border p-2 text-left">Variable</th>
-                    <th className="border p-2 text-left">Status</th>
-                    <th className="border p-2 text-left">Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {supabaseVariables.map((variable) => {
-                    const status = getStatus(variable.value)
-                    return (
-                      <tr key={variable.name} className="hover:bg-gray-50">
-                        <td className="border p-2 font-medium">{variable.name}</td>
-                        <td className={`border p-2 ${getStatusColor(status)}`}>{status}</td>
-                        <td className="border p-2 font-mono text-sm">
-                          {getDisplayValue(variable.value, variable.sensitive)}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Turnstile Variables */}
         <Card>
