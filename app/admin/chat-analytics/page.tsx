@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { createClient } from "@supabase/supabase-js"
+
 
 export default function ChatAnalyticsDashboard() {
   const [loading, setLoading] = useState(true)
@@ -13,95 +13,11 @@ export default function ChatAnalyticsDashboard() {
 
   useEffect(() => {
     async function fetchChatAnalytics() {
-      try {
-        setLoading(true)
-
-        // Initialize Supabase client with fallbacks
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-for-build.supabase.co';
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key-for-build';
-        const supabase = createClient(supabaseUrl, supabaseAnonKey);
-        
-        // Skip database operations during build time
-        if (supabaseUrl === 'https://placeholder-for-build.supabase.co' || 
-            process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
-          setChatStats({
-            summary: [],
-            totalChats: 0,
-            totalMessages: 0,
-            uniqueUsers: 0
-          });
-          setLoading(false);
-          return;
-        }
-
-        // Calculate date range based on timeframe
-        const now = new Date()
-        const startDate = new Date()
-
-        if (timeframe === "day") {
-          startDate.setDate(now.getDate() - 1)
-        } else if (timeframe === "week") {
-          startDate.setDate(now.getDate() - 7)
-        } else if (timeframe === "month") {
-          startDate.setMonth(now.getMonth() - 1)
-        }
-
-        // Fetch chat analytics summary
-        const { data: summaryData, error: summaryError } = await supabase
-          .from("chat_analytics_summary")
-          .select("*")
-          .gte("day", startDate.toISOString())
-          .order("day", { ascending: false })
-
-        if (summaryError) {
-          throw new Error(`Failed to fetch chat analytics summary: ${summaryError.message}`)
-        }
-
-        // Fetch total chats
-        const { count: totalChats, error: chatsError } = await supabase
-          .from("chat_analytics")
-          .select("chat_id", { count: "exact", head: true })
-          .eq("event_type", "new_chat")
-
-        if (chatsError) {
-          throw new Error(`Failed to fetch total chats: ${chatsError.message}`)
-        }
-
-        // Fetch total messages
-        const { count: totalMessages, error: messagesError } = await supabase
-          .from("chat_analytics")
-          .select("id", { count: "exact", head: true })
-          .eq("event_type", "chat_message")
-
-        if (messagesError) {
-          throw new Error(`Failed to fetch total messages: ${messagesError.message}`)
-        }
-
-        // Fetch unique users
-        const { count: uniqueUsers, error: usersError } = await supabase
-          .from("chat_analytics")
-          .select("session_id", { count: "exact", head: true })
-          .eq("event_type", "new_chat")
-
-        if (usersError) {
-          throw new Error(`Failed to fetch unique users: ${usersError.message}`)
-        }
-
-        // Set the stats
-        setChatStats({
-          summary: summaryData,
-          totalChats,
-          totalMessages,
-          uniqueUsers,
-        })
-      } catch (err) {
-        console.error("Error fetching chat analytics:", err)
-        setError(err instanceof Error ? err.message : String(err))
-      } finally {
-        setLoading(false)
-      }
+      setLoading(true)
+      // TODO: Google Cloud SQL stub
+      setChatStats({ summary: [], totalChats: 0, totalMessages: 0, uniqueUsers: 0 })
+      setLoading(false)
     }
-
     fetchChatAnalytics()
   }, [timeframe])
 

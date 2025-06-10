@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { getShareAnalytics, exportShareAnalyticsForTraining } from "@/app/actions/track-share"
+// TODO: Google Cloud SQL stub functions
+const getShareAnalytics = async () => ({ success: true, data: { byPlatform: [], total: 0, dailyTrend: [], conversationData: [] } });
+const exportShareAnalyticsForTraining = async () => ({ success: true });
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
 import { Download } from "lucide-react"
 

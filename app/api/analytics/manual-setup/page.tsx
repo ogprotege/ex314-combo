@@ -26,7 +26,7 @@ export default function ManualSetup() {
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">Analytics Tables Setup</h1>
       <p className="mb-4">
-        This page will create the necessary tables for analytics tracking in your Supabase database.
+        This page will create the necessary tables for analytics tracking in your database.
       </p>
 
       <button
@@ -54,7 +54,7 @@ export default function ManualSetup() {
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-2">Manual SQL</h2>
         <p className="mb-2">
-          If the automatic setup doesn't work, you can run the following SQL in the Supabase SQL Editor:
+          If the automatic setup doesn't work, you can run the following SQL in your database console:
         </p>
         <pre className="p-4 bg-gray-100 rounded overflow-auto">
           {`-- Create sessions table

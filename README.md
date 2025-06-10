@@ -79,7 +79,6 @@ Ex314.ai is built with a distinct approach to AI:
 
 ### Backend
 - Clerk authentication with fallback mechanisms
-- Supabase database integration
 - Next.js API routes and server actions
 - OpenAI API integration (transitional until custom model deployment)
 
@@ -95,7 +94,6 @@ Ex314.ai is built with a distinct approach to AI:
 - Node.js 18.x or higher
 - npm or yarn
 - Clerk.dev account (for authentication)
-- Supabase (for database)
 - Access keys for the deployed Llama model API
 
 ## ⚙️ Installation
@@ -120,9 +118,7 @@ Ex314.ai is built with a distinct approach to AI:
    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
    CLERK_SECRET_KEY=your_clerk_secret_key
    
-   # Database (Supabase)
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   SUPABASE_SERVICE_ROLE_KEY=your_supabase_key
+   # TODO: Google Cloud SQL configuration
 
    # LLM API (transitional until custom deployment)
    OPENAI_API_KEY=your_openai_key
@@ -233,9 +229,9 @@ support@ex314.ai
 
 Ex314.ai aims to leverage the best of modern AI technology in service of timeless Catholic truth, making the richness of the Church's teaching accessible to all seekers in the digital age.
 
-# Next.js Application with Supabase and Clerk
+# Next.js Application with Clerk
 
-This is a modern Next.js application with Supabase for database and analytics, and Clerk for authentication.
+This is a modern Next.js application. Clerk handles authentication and database functionality will use Google Cloud SQL.
 
 ## Deployment Guide
 
@@ -245,9 +241,7 @@ For successful deployment on Vercel, set the following environment variables:
 
 ```
 NEXT_PUBLIC_SKIP_AUTH_CHECK=true  # Required during build 
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+# TODO: Google Cloud SQL credentials
 ```
 
 If you want to use Clerk authentication, also add:
@@ -301,7 +295,7 @@ npm start
 
 ## Database Setup
 
-The application uses Supabase for database operations. For analytics and other features, tables are created automatically through API endpoints.
+TODO: integrate Google Cloud SQL for database operations. All analytics tables will be created using Cloud SQL.
 
 ## Authentication
 

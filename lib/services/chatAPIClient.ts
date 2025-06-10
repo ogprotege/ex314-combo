@@ -10,8 +10,8 @@ export interface ChatMessage {
  * and return the final AI response.
  *
  * @param messages - array of chat messages to send to the AI
- * @param user_id - optional user ID for Supabase logging
- * @param chat_id - optional chat ID for Supabase logging
+ * @param user_id - optional user ID for logging
+ * @param chat_id - optional chat ID for logging
  */
 export async function getAICompletion(
   messages: ChatMessage[],
