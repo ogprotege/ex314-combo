@@ -100,7 +100,7 @@ Ex314.ai is built with a distinct approach to AI:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/ex314-revamp.git
+   git clone https://github.com/yourusername/ex314-combo.git
    cd ex314-revamp
    ```
 
