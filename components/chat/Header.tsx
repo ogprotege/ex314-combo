@@ -6,7 +6,7 @@ export const Header = () => {
       <div className="flex flex-col items-center text-center gap-3">
         <div className="flex items-center gap-3">
           <div className="bg-accent-purple bg-opacity-10 p-1.5 rounded-lg">
-            <ChiRhoLogo size={32} />
+            <ChiRhoLogo className="h-8 w-8" />
           </div>
           <h1 className="text-xl md:text-2xl font-semibold text-accent-purple">
             ex314.ai | Where Divine Truth Meets Digital Inquiry

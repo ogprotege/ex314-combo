@@ -8,7 +8,8 @@ interface LogoutButtonProps {
 }
 
 export const LogoutButton = ({ className }: LogoutButtonProps) => {
-  const { logout } = useAuth()
+  const authState = useAuth()
+  const logout = 'logout' in authState ? authState.logout : () => {}
 
   return (
     <Button onClick={() => logout()} variant="outline" className={className}>

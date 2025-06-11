@@ -7,11 +7,12 @@
     "prebuild": "node vercel-build.js",
     "build": "NEXT_PUBLIC_SKIP_AUTH_CHECK=true next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/togetherai": "^0.2.14",
-    "@clerk/nextjs": "^6.19.2",
+    "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-accordion": "^1.2.10",
     "@radix-ui/react-alert-dialog": "^1.1.13",
@@ -79,6 +80,6 @@
     "eslint-config-next": "^15.3.2",
     "postcss": "^8",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5"
+    "typescript": "^5.8.3"
   }
 }

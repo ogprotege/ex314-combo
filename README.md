@@ -78,7 +78,7 @@ Ex314.ai is built with a distinct approach to AI:
 - Dark/light mode support
 
 ### Backend
-- Clerk authentication with fallback mechanisms
+- Firebase Authentication and Firestore
 - Next.js API routes and server actions
 - OpenAI API integration (transitional until custom model deployment)
 
@@ -93,7 +93,7 @@ Ex314.ai is built with a distinct approach to AI:
 
 - Node.js 18.x or higher
 - npm or yarn
-- Clerk.dev account (for authentication)
+- Firebase project (for authentication and database)
 - Access keys for the deployed Llama model API
 
 ## ⚙️ Installation
@@ -114,9 +114,13 @@ Ex314.ai is built with a distinct approach to AI:
 3. **Set up environment variables**
    Create a `.env.local` file in the root directory with the following variables:
    ```
-   # Authentication (Clerk)
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-   CLERK_SECRET_KEY=your_clerk_secret_key
+   # Authentication (Firebase)
+   NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
+   NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
    
    # TODO: Google Cloud SQL configuration
 
@@ -229,9 +233,9 @@ support@ex314.ai
 
 Ex314.ai aims to leverage the best of modern AI technology in service of timeless Catholic truth, making the richness of the Church's teaching accessible to all seekers in the digital age.
 
-# Next.js Application with Clerk
+# Next.js Application with Firebase
 
-This is a modern Next.js application. Clerk handles authentication and database functionality will use Google Cloud SQL.
+This is a modern Next.js application. Firebase handles authentication and Firestore provides database functionality. Google Cloud SQL will be used for analytics.
 
 ## Deployment Guide
 
@@ -244,11 +248,15 @@ NEXT_PUBLIC_SKIP_AUTH_CHECK=true  # Required during build
 # TODO: Google Cloud SQL credentials
 ```
 
-If you want to use Clerk authentication, also add:
+If you want to use Firebase authentication, also add:
 
 ```
-CLERK_SECRET_KEY=your_clerk_secret
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
 ```
 
 ### Build Process
@@ -295,11 +303,11 @@ npm start
 
 ## Database Setup
 
-TODO: integrate Google Cloud SQL for database operations. All analytics tables will be created using Cloud SQL.
+TODO: integrate Google Cloud SQL for database operations. All analytics tables will be created using Cloud SQL. Firestore will be used for user data and other non-analytics information.
 
 ## Authentication
 
-Authentication is handled by Clerk. Make sure to set up your Clerk application correctly with the right redirect URLs.
+Authentication is handled by Firebase Auth. Make sure to set up your Firebase project correctly with the right authentication methods enabled.
 
 ## Troubleshooting Build Issues
 

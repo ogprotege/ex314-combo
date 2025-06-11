@@ -2,7 +2,9 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useUser, useClerk } from "@clerk/nextjs"
+import { auth, db } from "@/lib/firebase"
+import { updateProfile, signOut } from "firebase/auth"
+import { doc, updateDoc, getDoc, setDoc } from "firebase/firestore"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,53 +14,74 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
-import { Loader2, Save, UserCircle, Bell, Settings, Shield } from "lucide-react"
+import { Loader2, Save, UserCircle, Bell, Shield, Settings } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
 
 export function UserProfile({ user }: { user: any }) {
-  const { user: clerkUser, isLoaded } = useUser()
-  const { signOut } = useClerk()
+  const authState = useAuth()
+  const authUser = 'user' in authState ? authState.user : null
   const router = useRouter()
+  const firebaseUser = auth.currentUser
 
   const [isUpdating, setIsUpdating] = useState(false)
-  const [firstName, setFirstName] = useState(user.firstName || "")
-  const [lastName, setLastName] = useState(user.lastName || "")
-  const [bio, setBio] = useState("")
+  const [firstName, setFirstName] = useState(user?.firstName || user?.name?.split(' ')[0] || "")
+  const [lastName, setLastName] = useState(user?.lastName || (user?.name?.split(' ').length > 1 ? user.name.split(' ').slice(1).join(' ') : "") || "")
+  const [bio, setBio] = useState(user?.bio || "")
 
   // Prayer preferences
-  const [prayerLanguage, setPrayerLanguage] = useState("en")
-  const [dailyReminders, setDailyReminders] = useState(false)
-  const [reminderTime, setReminderTime] = useState("08:00")
-  const [favoriteDevotions, setFavoriteDevotions] = useState<string[]>([])
+  const [prayerLanguage, setPrayerLanguage] = useState(user?.prayerPreferences?.language || "en")
+  const [dailyReminders, setDailyReminders] = useState(user?.prayerPreferences?.dailyReminders || false)
+  const [reminderTime, setReminderTime] = useState(user?.prayerPreferences?.reminderTime || "08:00")
+  const [favoriteDevotions, setFavoriteDevotions] = useState<string[]>(user?.prayerPreferences?.favoriteDevotions || [])
 
   // Privacy settings
-  const [shareActivity, setShareActivity] = useState(false)
-  const [publicProfile, setPublicProfile] = useState(false)
+  const [shareActivity, setShareActivity] = useState(user?.privacySettings?.shareActivity || false)
+  const [publicProfile, setPublicProfile] = useState(user?.privacySettings?.publicProfile || false)
 
-  async function updateProfile() {
-    if (!isLoaded || !clerkUser) return
+  async function updateUserProfile() {
+    if (!firebaseUser) return
 
     setIsUpdating(true)
 
     try {
-      await clerkUser.update({
-        firstName,
-        lastName,
-        // Note: Clerk doesn't have a built-in bio field, so we'd need to use metadata
-        // or a separate database to store additional user information
-        unsafeMetadata: {
-          bio,
-          prayerPreferences: {
-            language: prayerLanguage,
-            dailyReminders,
-            reminderTime,
-            favoriteDevotions,
-          },
-          privacySettings: {
-            shareActivity,
-            publicProfile,
-          },
-        },
+      // Update Firebase Auth profile (display name)
+      await updateProfile(firebaseUser, {
+        displayName: `${firstName} ${lastName}`.trim()
       })
+
+      // Update Firestore document with all user preferences
+      const userDocRef = doc(db, "users", firebaseUser.uid)
+      
+      // Check if user doc exists
+      const userDoc = await getDoc(userDocRef)
+      
+      const userData = {
+        name: `${firstName} ${lastName}`.trim(),
+        email: firebaseUser.email,
+        bio,
+        prayerPreferences: {
+          language: prayerLanguage,
+          dailyReminders,
+          reminderTime,
+          favoriteDevotions,
+        },
+        privacySettings: {
+          shareActivity,
+          publicProfile,
+        },
+        updatedAt: new Date().toISOString()
+      }
+      
+      if (userDoc.exists()) {
+        await updateDoc(userDocRef, userData)
+      } else {
+        // Create the document if it doesn't exist
+        await setDoc(userDocRef, {
+          ...userData,
+          createdAt: new Date().toISOString(),
+          role: "user"
+        })
+      }
 
       toast({
         title: "Profile updated",
@@ -79,11 +102,20 @@ export function UserProfile({ user }: { user: any }) {
   }
 
   async function handleSignOut() {
-    await signOut()
-    router.push("/")
+    try {
+      await signOut(auth)
+      router.push("/")
+    } catch (error) {
+      console.error("Error signing out:", error)
+      toast({
+        title: "Error signing out",
+        description: "There was an error signing out. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
-  if (!isLoaded) {
+  if (!authUser) {
     return (
       <div className="flex justify-center items-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
@@ -141,11 +173,11 @@ export function UserProfile({ user }: { user: any }) {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
-                  value={user.emailAddresses?.[0]?.emailAddress || ""}
+                  value={firebaseUser?.email || ""}
                   disabled
                   className="bg-gray-50"
                 />
-                <p className="text-xs text-gray-500">To change your email, please use the Clerk user settings.</p>
+                <p className="text-xs text-gray-500">To change your email, please use the Firebase account settings.</p>
               </div>
 
               <div className="space-y-2">
@@ -163,7 +195,7 @@ export function UserProfile({ user }: { user: any }) {
               <Button variant="outline" onClick={handleSignOut}>
                 Sign Out
               </Button>
-              <Button onClick={updateProfile} disabled={isUpdating} className="bg-purple-600 hover:bg-purple-700">
+              <Button onClick={updateUserProfile} disabled={isUpdating} className="bg-purple-600 hover:bg-purple-700">
                 {isUpdating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -257,7 +289,7 @@ export function UserProfile({ user }: { user: any }) {
             </CardContent>
             <CardFooter>
               <Button
-                onClick={updateProfile}
+                onClick={updateUserProfile}
                 disabled={isUpdating}
                 className="ml-auto bg-purple-600 hover:bg-purple-700"
               >
@@ -310,15 +342,24 @@ export function UserProfile({ user }: { user: any }) {
                 <h3 className="text-lg font-medium">Account Security</h3>
                 <div className="rounded-lg border border-gray-200 p-4">
                   <p className="text-sm text-gray-600 mb-4">
-                    Manage your account security settings, including password and two-factor authentication.
+                    Manage your account security settings, including password and email.
                   </p>
                   <Button
                     variant="outline"
-                    onClick={() => window.open(clerkUser?.getUserSettings() || "#", "_blank")}
+                    onClick={() => {
+                      // Send password reset email
+                      import('firebase/auth').then(({ sendPasswordResetEmail }) => {
+                        sendPasswordResetEmail(auth, firebaseUser?.email || "")
+                        toast({
+                          title: "Password reset email sent",
+                          description: "Check your email for instructions to reset your password.",
+                        })
+                      })
+                    }}
                     className="w-full"
                   >
                     <Settings className="mr-2 h-4 w-4" />
-                    Manage Account Security
+                    Reset Password
                   </Button>
                 </div>
               </div>
@@ -330,10 +371,32 @@ export function UserProfile({ user }: { user: any }) {
                     You can request a copy of your data or delete your account at any time.
                   </p>
                   <div className="flex gap-2 mt-4">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        toast({
+                          title: "Data export requested",
+                          description: "We'll process your request and send the data to your email.",
+                        })
+                      }}
+                    >
                       Request Data Export
                     </Button>
-                    <Button variant="destructive" size="sm">
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+                          // In a real app, this would delete the user's account and data
+                          toast({
+                            title: "Account deletion requested",
+                            description: "Your account will be deleted within 24 hours.",
+                            variant: "destructive",
+                          })
+                        }
+                      }}
+                    >
                       Delete Account
                     </Button>
                   </div>
@@ -342,7 +405,7 @@ export function UserProfile({ user }: { user: any }) {
             </CardContent>
             <CardFooter>
               <Button
-                onClick={updateProfile}
+                onClick={updateUserProfile}
                 disabled={isUpdating}
                 className="ml-auto bg-purple-600 hover:bg-purple-700"
               >

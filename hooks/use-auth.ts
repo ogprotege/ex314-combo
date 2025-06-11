@@ -2,19 +2,6 @@
 
 import { useContext } from "react"
 import { AuthContext } from "@/context/AuthContext"
-import { useFallbackAuth } from "./use-fallback-auth"
-
-// Create a fallback mechanism if Clerk is not available
-let clerkImported = false
-
-try {
-  // Try to require ClerkProvider - if this throws, we know it's not available
-  require("@clerk/nextjs")
-  clerkImported = true
-} catch (e) {
-  console.warn("Clerk auth not available, using fallback auth")
-  clerkImported = false
-}
 
 export const useAuth = () => {
   // Add build-time check to skip auth
@@ -22,21 +9,21 @@ export const useAuth = () => {
     return { isAuthenticated: false, isLoading: false };
   }
 
-  // If Clerk is available, use the AuthContext which integrates with Clerk
-  if (clerkImported) {
-    try {
-      const context = useContext(AuthContext)
-      if (context === undefined) {
-        throw new Error("useAuth must be used within an AuthProvider")
-      }
-      return context
-    } catch (e) {
-      // If there's any error using AuthContext, fall back to local auth
-      console.warn("Error using Clerk auth, falling back to local auth:", e)
-      return useFallbackAuth()
+  try {
+    const context = useContext(AuthContext)
+    if (context === undefined) {
+      throw new Error("useAuth must be used within an AuthProvider")
+    }
+    return context
+  } catch (e) {
+    console.warn("Error using auth context:", e)
+    return {
+      isAuthenticated: false,
+      user: null,
+      login: () => { window.location.href = "/sign-in" },
+      logout: () => {},
+      isLoading: false,
+      isAdmin: false,
     }
   }
-  
-  // If Clerk is not available, use the fallback auth
-  return useFallbackAuth()
 }

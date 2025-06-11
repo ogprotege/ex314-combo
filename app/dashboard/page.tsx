@@ -1,39 +1,55 @@
-import { currentUser } from "@clerk/nextjs/server"
-import { redirect } from "next/navigation"
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { auth, db } from "@/lib/firebase"
+import { doc, getDoc } from "firebase/firestore"
 import { ChiRho } from "@/components/chi-rho"
 import Link from "next/link"
+import { useAuth } from "@/hooks/use-auth"
 
-export default async function DashboardPage() {
-  // Skip auth check during build time
-  if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
+export default function DashboardPage() {
+  const authState = useAuth()
+  const isAuthenticated = authState.isAuthenticated
+  const isLoading = authState.isLoading
+  const user = 'user' in authState ? authState.user : null
+  
+  const router = useRouter()
+  const [userData, setUserData] = useState<any>(null)
+
+  useEffect(() => {
+    // Redirect unauthenticated users
+    if (!isLoading && !isAuthenticated) {
+      router.push("/sign-in")
+    }
+
+    // Fetch additional user data from Firestore
+    async function fetchUserData() {
+      if (isAuthenticated && auth.currentUser) {
+        try {
+          const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid))
+          if (userDoc.exists()) {
+            setUserData(userDoc.data())
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error)
+        }
+      }
+    }
+
+    if (isAuthenticated && !userData) {
+      fetchUserData()
+    }
+  }, [isAuthenticated, isLoading, router, userData])
+
+  // While loading or redirecting
+  if (isLoading || (!isAuthenticated && !process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK)) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
-        <header className="site-header w-full py-6 px-4 md:px-8 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2">
-            <ChiRho className="h-8 w-8" />
-            <h1 className="text-2xl font-bold">Ex314.ai</h1>
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link href="/resources" className="nav-link">Resources</Link>
-            <Link href="/calendar" className="nav-link">Liturgical Calendar</Link>
-            <Link href="/prayers" className="nav-link">Prayers</Link>
-          </nav>
-        </header>
-
-        <main className="flex-1 container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-2 text-center">Your Prayer Dashboard</h1>
-          <p className="text-gray-600 mb-8 text-center">Welcome, Friend! Manage your saved prayers and devotions.</p>
-          {/* Dashboard content */}
-        </main>
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
+        <ChiRho className="h-12 w-12 animate-pulse" />
+        <p className="mt-4">Loading...</p>
       </div>
-    );
-  }
-
-  const user = await currentUser()
-
-  // If the user is not signed in, redirect to the sign-in page
-  if (!user) {
-    redirect("/sign-in")
+    )
   }
 
   return (
@@ -59,7 +75,7 @@ export default async function DashboardPage() {
       <main className="flex-1 container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-2 text-center">Your Prayer Dashboard</h1>
         <p className="text-gray-600 mb-8 text-center">
-          Welcome, {user.firstName || user.username || "Friend"}! Manage your saved prayers and devotions.
+          Welcome, {user?.name || userData?.name || user?.email?.split('@')[0] || "Friend"}! Manage your saved prayers and devotions.
         </p>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -120,4 +136,3 @@ export default async function DashboardPage() {
     </div>
   )
 }
-

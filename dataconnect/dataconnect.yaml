@@ -1,5 +1,5 @@
 specVersion: "v1"
-serviceId: "ex314-full-poc"
+serviceId: "ex314-merge"
 location: "us-east1"
 schema:
   source: "./schema"

@@ -7,16 +7,16 @@ import { useAuth } from "@/hooks/use-fallback-auth"
 export default function EnvironmentDiagnosticsPage() {
   // Call useAuth to ensure it works in this component
   useAuth();
-  // Clerk Auth Environment Variables
-  const clerkVariables = [
-    { name: "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", value: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, sensitive: false },
-    { name: "CLERK_SECRET_KEY", value: process.env.CLERK_SECRET_KEY, sensitive: true },
-    { name: "NEXT_PUBLIC_CLERK_SIGN_IN_URL", value: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL, sensitive: false },
-    { name: "NEXT_PUBLIC_CLERK_SIGN_UP_URL", value: process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL, sensitive: false },
-    { name: "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL", value: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL, sensitive: false },
-    { name: "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL", value: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL, sensitive: false },
+  
+  // Firebase Auth Environment Variables
+  const firebaseVariables = [
+    { name: "NEXT_PUBLIC_FIREBASE_API_KEY", value: process.env.NEXT_PUBLIC_FIREBASE_API_KEY, sensitive: false },
+    { name: "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN", value: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN, sensitive: false },
+    { name: "NEXT_PUBLIC_FIREBASE_PROJECT_ID", value: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID, sensitive: false },
+    { name: "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET", value: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET, sensitive: false },
+    { name: "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID", value: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID, sensitive: false },
+    { name: "NEXT_PUBLIC_FIREBASE_APP_ID", value: process.env.NEXT_PUBLIC_FIREBASE_APP_ID, sensitive: false },
   ]
-
 
   // Turnstile Environment Variables
   const turnstileVariables = [
@@ -116,11 +116,11 @@ export default function EnvironmentDiagnosticsPage() {
           </CardContent>
         </Card>
 
-        {/* Clerk Variables */}
+        {/* Firebase Variables */}
         <Card>
           <CardHeader>
-            <CardTitle>Clerk Configuration</CardTitle>
-            <CardDescription>Environment variables for Clerk authentication</CardDescription>
+            <CardTitle>Firebase Configuration</CardTitle>
+            <CardDescription>Environment variables for Firebase authentication</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -133,7 +133,7 @@ export default function EnvironmentDiagnosticsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {clerkVariables.map((variable) => {
+                  {firebaseVariables.map((variable) => {
                     const status = getStatus(variable.value)
                     return (
                       <tr key={variable.name} className="hover:bg-gray-50">
@@ -150,7 +150,6 @@ export default function EnvironmentDiagnosticsPage() {
             </div>
           </CardContent>
         </Card>
-
 
         {/* Turnstile Variables */}
         <Card>
@@ -303,4 +302,4 @@ export default function EnvironmentDiagnosticsPage() {
       </div>
     </div>
   )
-} 
+}

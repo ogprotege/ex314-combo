@@ -5,7 +5,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 
 export const UserProfile = () => {
-  const { user, logout, isLoading } = useAuth()
+  const authState = useAuth()
+  const isLoading = authState.isLoading
+  const user = 'user' in authState ? authState.user : null
+  const logout = 'logout' in authState ? authState.logout : () => {}
 
   if (isLoading || !user) {
     return null
@@ -22,7 +25,7 @@ export const UserProfile = () => {
         <AvatarFallback>
           {user.name
             ?.split(" ")
-            .map((n) => n[0])
+            .map((n: string) => n[0])
             .join("") || "U"}
         </AvatarFallback>
       </Avatar>

@@ -14,7 +14,10 @@ interface AdminOnlyProps {
  * Otherwise shows nothing or a fallback component if provided
  */
 export function AdminOnly({ children, fallback }: AdminOnlyProps) {
-  const { isAdmin, isLoading, isAuthenticated } = useAuth();
+  const authState = useAuth();
+  const isLoading = authState.isLoading;
+  const isAuthenticated = authState.isAuthenticated;
+  const isAdmin = 'isAdmin' in authState ? authState.isAdmin : false;
   
   // Still loading or not authenticated
   if (isLoading || !isAuthenticated) {

@@ -36,21 +36,9 @@ export async function POST(req: NextRequest) {
 
     // Try using Together AI first
     try {
-      // Select the appropriate model based on content
-      const aiModel = selectModel(latestMessage)
-      
-      // Generate a response using the selected Together.ai model
-      const completion = await aiModel.chat({
-        messages: formattedMessages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }))
-      })
-
-      return Response.json({ 
-        text: completion.content,
-        model: aiModel.name
-      });
+      // For now, skip Together AI and use OpenAI directly
+      // TODO: Implement proper Together AI integration
+      throw new Error("Together AI integration pending");
     } catch (togetherError) {
       console.error("Error with Together AI, falling back to OpenAI:", togetherError);
       

@@ -16,7 +16,7 @@ export async function submitContactForm(data: ContactFormData) {
     const verification = await verifyTurnstileToken(data.turnstileToken)
 
     // Get IP address and user agent for analytics and spam detection
-    const headersList = headers()
+    const headersList = await headers()
     const ipAddress = headersList.get("x-forwarded-for") || "unknown"
     const userAgent = headersList.get("user-agent") || "unknown"
 

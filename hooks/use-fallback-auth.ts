@@ -1,6 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { 
+  onAuthStateChanged, 
+  signOut as firebaseSignOut 
+} from 'firebase/auth'
+import { doc, getDoc } from 'firebase/firestore'
+import { auth, db } from '@/lib/firebase'
 
 type User = {
   name?: string
@@ -18,8 +24,8 @@ type AuthState = {
 }
 
 /**
- * A fallback hook for authentication when Clerk is not available
- * This uses localStorage for a simple auth implementation
+ * A hook for Firebase authentication that has the same interface
+ * as the previous authentication implementation
  */
 export const useFallbackAuth = (): AuthState => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -28,34 +34,61 @@ export const useFallbackAuth = (): AuthState => {
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
-    // Check if we're in a browser environment
-    if (typeof window !== 'undefined') {
-      // Check if user is logged in from localStorage
-      const storedUser = localStorage.getItem("user")
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser)
-        setUser(parsedUser)
+    // Skip auth check during build time
+    if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
+      setIsLoading(false)
+      return () => {}
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // User is signed in
+        const userData: User = {
+          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+          email: firebaseUser.email || '',
+          picture: firebaseUser.photoURL || '',
+        }
+        
+        setUser(userData)
         setIsAuthenticated(true)
         
-        // Check for admin role (this is a simplified example)
-        setIsAdmin(parsedUser.email?.endsWith('@admin.com') || false)
+        // Check if user is admin by checking Firestore
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+          if (userDoc.exists()) {
+            setIsAdmin(userDoc.data()?.role === 'admin')
+          } else {
+            setIsAdmin(false)
+          }
+        } catch (error) {
+          console.error('Error checking admin status:', error)
+          setIsAdmin(false)
+        }
+      } else {
+        // User is signed out
+        setUser(null)
+        setIsAuthenticated(false)
+        setIsAdmin(false)
       }
+      
       setIsLoading(false)
-    }
+    })
+    
+    // Cleanup subscription
+    return () => unsubscribe()
   }, [])
 
   const login = () => {
     window.location.href = "/sign-in"
   }
 
-  const logout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem("user")
+  const logout = async () => {
+    try {
+      await firebaseSignOut(auth)
+      window.location.href = "/"
+    } catch (error) {
+      console.error('Error signing out:', error)
     }
-    setUser(null)
-    setIsAuthenticated(false)
-    setIsAdmin(false)
-    window.location.href = "/"
   }
 
   return {

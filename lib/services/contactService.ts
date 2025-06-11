@@ -20,7 +20,7 @@ export interface ContactFormData {
   subject: string
   message: string
   turnstileToken: string
-  turnstileVerified: boolean
+  turnstileVerified?: boolean
 }
 
 export async function saveContactSubmission(

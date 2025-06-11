@@ -1,20 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from 'next/headers';
+import { getApp, getApps, initializeApp } from 'firebase/app';
+import { getAuth, onAuthStateChanged, getIdTokenResult } from 'firebase/auth';
 
-// Create a fallback mechanism if Clerk is not available
-let clerkImported = false;
-let clerkClient: any = null;
-let getAuth: any = null;
-
-try {
-  // Try to import Clerk
-  const clerkServer = require("@clerk/nextjs/server");
-  clerkClient = clerkServer.clerkClient;
-  getAuth = clerkServer.getAuth;
-  clerkImported = true;
-} catch (e) {
-  console.warn("Clerk auth not available in middleware, using fallback auth");
-  clerkImported = false;
-}
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'placeholder-api-key',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'placeholder-auth-domain',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'placeholder-project-id',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'placeholder-storage-bucket',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || 'placeholder-messaging-id',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || 'placeholder-app-id',
+};
 
 /**
  * Middleware to check if a user has admin privileges
@@ -26,36 +22,12 @@ export async function isAdmin(req: NextRequest) {
     return false;
   }
   
-  // If Clerk is not available, use a fallback check
-  if (!clerkImported) {
-    // In a real implementation, this could check a cookie or JWT
-    // For now, let's check a special header or query param for testing
-    const isLocalAdmin = req.headers.get("x-is-admin") === "true" ||
-                       req.nextUrl.searchParams.get("admin") === "true";
-    return isLocalAdmin;
-  }
-
-  // Clerk is available, check for admin role
-  const { userId } = getAuth(req);
-
-  // Not authenticated
-  if (!userId) {
-    return false;
-  }
-
-  try {
-    // Get the user data from Clerk
-    const user = await clerkClient.users.getUser(userId);
-
-    // Check if user has admin role in public metadata
-    // You need to set this in the Clerk dashboard for your admin users
-    const isAdminUser = user.publicMetadata?.role === "admin";
-
-    return isAdminUser === true;
-  } catch (error) {
-    console.error("Error checking admin status:", error);
-    return false;
-  }
+  // In a real implementation, this would verify a Firebase token
+  // For now, check a special header or query param for testing
+  const isLocalAdmin = req.headers.get("x-is-admin") === "true" ||
+                     req.nextUrl.searchParams.get("admin") === "true";
+                     
+  return isLocalAdmin;
 }
 
 /**

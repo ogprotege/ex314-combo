@@ -213,7 +213,14 @@ export default function ResourcesPage() {
   )
 }
 
-function ResourceCard({ title, description, category, year }) {
+interface ResourceCardProps {
+  title: string
+  description: string
+  category: string
+  year: string
+}
+
+function ResourceCard({ title, description, category, year }: ResourceCardProps) {
   return (
     <Card>
       <CardHeader>

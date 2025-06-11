@@ -1,22 +1,13 @@
 "use client"
 
 import { createContext, useState, useContext, useEffect, type ReactNode } from "react"
-
-// Create a fallback mechanism if Clerk is not available
-let clerkImported = false
-let useClerkUser: any = null
-let useClerkAuth: any = null
-
-try {
-  // Try to import Clerk
-  const clerk = require("@clerk/nextjs")
-  useClerkUser = clerk.useUser
-  useClerkAuth = clerk.useAuth
-  clerkImported = true
-} catch (e) {
-  console.warn("Clerk auth not available, using fallback auth")
-  clerkImported = false
-}
+import { 
+  User as FirebaseUser, 
+  onAuthStateChanged, 
+  signOut as firebaseSignOut 
+} from 'firebase/auth'
+import { doc, getDoc } from 'firebase/firestore'
+import { auth, db } from '@/lib/firebase'
 
 type User = {
   name?: string
@@ -43,81 +34,74 @@ export const AuthContext = createContext<AuthContextType>({
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [isLoading, setIsLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   
-  // Handle authentication with or without Clerk
-  let isAuthenticated = false
-  let user: User | null = null
-  let isLoading = true
-  let logout = () => {}
-  
-  if (clerkImported) {
-    // Clerk is available
-    const { isSignedIn, user: clerkUser, isLoaded } = useClerkUser()
-    const { signOut } = useClerkAuth()
-    
-    isAuthenticated = !!isSignedIn
-    isLoading = !isLoaded
-    
-    user = isSignedIn && clerkUser
-      ? {
-          name: clerkUser.fullName || clerkUser.username || "",
-          email: clerkUser.primaryEmailAddress?.emailAddress || "",
-          picture: clerkUser.imageUrl || "",
+  useEffect(() => {
+    // Skip auth check during build time
+    if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
+      setIsLoading(false)
+      return
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // User is signed in
+        const userData: User = {
+          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+          email: firebaseUser.email || '',
+          picture: firebaseUser.photoURL || '',
         }
-      : null
-      
-    logout = () => signOut()
-    
-    // Check if user is admin (from Clerk metadata)
-    useEffect(() => {
-      if (isSignedIn && clerkUser) {
-        const userRole = clerkUser.publicMetadata?.role as string | undefined
-        setIsAdmin(userRole === "admin")
+        
+        setCurrentUser(userData)
+        setIsAuthenticated(true)
+        
+        // Check if user is admin by checking Firestore
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+          if (userDoc.exists()) {
+            setIsAdmin(userDoc.data()?.role === 'admin')
+          } else {
+            setIsAdmin(false)
+          }
+        } catch (error) {
+          console.error('Error checking admin status:', error)
+          setIsAdmin(false)
+        }
       } else {
+        // User is signed out
+        setCurrentUser(null)
+        setIsAuthenticated(false)
         setIsAdmin(false)
       }
-    }, [isSignedIn, clerkUser])
-  } else {
-    // Fallback to local storage auth
-    const [localUser, setLocalUser] = useState<User | null>(null)
-    const [localIsAuthenticated, setLocalIsAuthenticated] = useState(false)
-    const [localIsLoading, setLocalIsLoading] = useState(true)
+      
+      setIsLoading(false)
+    })
     
-    useEffect(() => {
-      // Check if user is logged in from localStorage
-      const storedUser = typeof window !== 'undefined' ? localStorage.getItem("user") : null
-      if (storedUser) {
-        setLocalUser(JSON.parse(storedUser))
-        setLocalIsAuthenticated(true)
-      }
-      setLocalIsLoading(false)
-    }, [])
-    
-    isAuthenticated = localIsAuthenticated
-    user = localUser
-    isLoading = localIsLoading
-    
-    logout = () => {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem("user")
-      }
-      setLocalUser(null)
-      setLocalIsAuthenticated(false)
-      window.location.href = "/"
-    }
-  }
+    // Cleanup subscription
+    return () => unsubscribe()
+  }, [])
 
-  // Login function works regardless of auth method
   const login = () => {
     window.location.href = "/sign-in"
+  }
+
+  const logout = async () => {
+    try {
+      await firebaseSignOut(auth)
+      window.location.href = "/"
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
   }
 
   return (
     <AuthContext.Provider
       value={{
         isAuthenticated,
-        user,
+        user: currentUser,
         login,
         logout,
         isLoading,

@@ -4,7 +4,10 @@ import { useAuth } from "@/hooks/use-auth"
 import Image from "next/image"
 
 export const Profile = () => {
-  const { user, isAuthenticated, isLoading } = useAuth()
+  const authState = useAuth()
+  const isAuthenticated = authState.isAuthenticated
+  const isLoading = authState.isLoading
+  const user = 'user' in authState ? authState.user : null
 
   if (isLoading) {
     return <div>Loading...</div>

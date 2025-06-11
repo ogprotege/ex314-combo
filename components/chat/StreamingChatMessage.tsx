@@ -47,7 +47,7 @@ export const StreamingChatMessage = ({
         <div className="flex-1 space-y-2">
           <div className="font-medium">{message.role === "user" ? "You" : "Ex314.ai"}</div>
           <div className="text-gray-200 whitespace-pre-wrap">
-            {searchQuery ? <HighlightedText text={displayContent} searchQuery={searchQuery} /> : displayContent}
+            {searchQuery ? <HighlightedText text={displayContent} searchTerm={searchQuery} /> : displayContent}
             {isStreaming && <span className="animate-pulse">▋</span>}
           </div>
         </div>

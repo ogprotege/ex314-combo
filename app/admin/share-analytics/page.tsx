@@ -5,8 +5,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 // TODO: Google Cloud SQL stub functions
-const getShareAnalytics = async () => ({ success: true, data: { byPlatform: [], total: 0, dailyTrend: [], conversationData: [] } });
-const exportShareAnalyticsForTraining = async () => ({ success: true });
+type AnalyticsResult = {
+  success: true;
+  data: { byPlatform: any[]; total: number; dailyTrend: any[]; conversationData: any[] };
+} | {
+  success: false;
+  error: string;
+};
+
+type ExportResult = {
+  success: true;
+  data: any[];
+} | {
+  success: false;
+  error: string;
+};
+
+const getShareAnalytics = async (timeframe?: string, includeConversationData?: boolean): Promise<AnalyticsResult> => ({ 
+  success: true, 
+  data: { byPlatform: [], total: 0, dailyTrend: [], conversationData: [] } 
+});
+const exportShareAnalyticsForTraining = async (startDate?: string, endDate?: string): Promise<ExportResult> => ({ 
+  success: true,
+  data: []
+});
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
 import { Download } from "lucide-react"
 
@@ -19,10 +41,6 @@ export default function ShareAnalyticsDashboard() {
   const [exportLoading, setExportLoading] = useState(false)
   const [startDate, setStartDate] = useState<string>("")
   const [endDate, setEndDate] = useState<string>("")
-
-  useEffect(() => {
-    fetchShareAnalytics()
-  }, [timeframe, activeTab, fetchShareAnalytics])
 
   const fetchShareAnalytics = useCallback(async () => {
     try {
@@ -42,6 +60,10 @@ export default function ShareAnalyticsDashboard() {
       setLoading(false)
     }
   }, [timeframe, activeTab])
+
+  useEffect(() => {
+    fetchShareAnalytics()
+  }, [timeframe, activeTab, fetchShareAnalytics])
 
   const handleExportData = async () => {
     try {
@@ -77,7 +99,7 @@ export default function ShareAnalyticsDashboard() {
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
       } else {
-        setError(result.error || "Failed to export data")
+        setError("Failed to export data")
       }
     } catch (err) {
       console.error("Error exporting data:", err)

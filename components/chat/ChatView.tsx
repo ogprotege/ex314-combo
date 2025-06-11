@@ -262,7 +262,7 @@ export function ChatView({ messages, isLoading, onSendMessage }: ChatViewProps) 
               >
                 <Filter size={18} />
               </button>
-              <ExportButton messages={messages} />
+              <ExportButton />
               <ShortcutHelp />
             </div>
           </>
@@ -272,7 +272,8 @@ export function ChatView({ messages, isLoading, onSendMessage }: ChatViewProps) 
       {/* Filter panel */}
       {isFilterOpen && (
         <ChatFilter
-          filter={filter}
+          isOpen={isFilterOpen}
+          onClose={() => setIsFilterOpen(false)}
           onFilterChange={(newFilter) => {
             setFilter(newFilter)
             trackChatFeature("filter_change", { filter: JSON.stringify(newFilter) })
@@ -290,7 +291,6 @@ export function ChatView({ messages, isLoading, onSendMessage }: ChatViewProps) 
             key={index}
             message={message}
             id={`message-${index}`}
-            highlight={searchResults.includes(index) && searchTerm !== ""}
             isHighlighted={index === searchResults[currentResultIndex] && searchResults.length > 0}
             searchTerm={searchTerm}
           />

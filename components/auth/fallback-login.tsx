@@ -6,7 +6,8 @@ import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { useFallbackAuth } from "@/hooks/use-fallback-auth"
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { auth } from '@/lib/firebase'
 import { useRouter } from "next/navigation"
 
 interface FallbackLoginProps {
@@ -16,14 +17,22 @@ interface FallbackLoginProps {
 export const FallbackLogin = ({ returnTo }: FallbackLoginProps) => {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const { login, error, isLoading } = useFallbackAuth()
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const result = await login(email, password)
-    if (result.success) {
+    setError(null)
+    setIsLoading(true)
+    
+    try {
+      await signInWithEmailAndPassword(auth, email, password)
       router.push(returnTo || "/chat")
+    } catch (err: any) {
+      setError(err.message || "Failed to sign in")
+    } finally {
+      setIsLoading(false)
     }
   }
 
