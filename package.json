@@ -8,7 +8,7 @@
     "build": "NEXT_PUBLIC_SKIP_AUTH_CHECK=true next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "dependencies": {
     "@ai-sdk/togetherai": "^0.2.14",
