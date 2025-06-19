@@ -21,6 +21,10 @@ export default function SignUpPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const skipAuth =
+    process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true' ||
+    !process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'placeholder-api-key'
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,16 +37,27 @@ export default function SignUpPage() {
       return
     }
 
+    if (skipAuth) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'demoUser',
+          JSON.stringify({ name, email })
+        )
+      }
+      router.push("/")
+      return
+    }
+
     try {
       // Create the user with email and password
       const userCredential = await createUserWithEmailAndPassword(auth, email, password)
       const user = userCredential.user
-      
+
       // Update profile with display name
       await updateProfile(user, {
         displayName: name
       })
-      
+
       // Save additional user data to Firestore
       await setDoc(doc(db, "users", user.uid), {
         name,
@@ -50,7 +65,7 @@ export default function SignUpPage() {
         createdAt: new Date().toISOString(),
         role: "user"
       })
-      
+
       router.push("/")
     } catch (error: any) {
       console.error("Error signing up:", error)
@@ -63,11 +78,22 @@ export default function SignUpPage() {
     setLoading(true)
     setError("")
 
+    if (skipAuth) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'demoUser',
+          JSON.stringify({ name: 'Demo User', email: 'demo@example.com' })
+        )
+      }
+      router.push("/")
+      return
+    }
+
     try {
       const provider = new GoogleAuthProvider()
       const result = await signInWithPopup(auth, provider)
       const user = result.user
-      
+
       // Save additional user data to Firestore
       await setDoc(doc(db, "users", user.uid), {
         name: user.displayName,
@@ -75,7 +101,7 @@ export default function SignUpPage() {
         createdAt: new Date().toISOString(),
         role: "user"
       }, { merge: true })
-      
+
       router.push("/")
     } catch (error: any) {
       console.error("Error signing up with Google:", error)

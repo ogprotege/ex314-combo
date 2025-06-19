@@ -41,6 +41,7 @@ This specialized training ensures the AI understands Catholic teaching in its pr
 - **Prayer Resources**: Access traditional Catholic prayers
 - **Daily Readings**: Connect with daily Mass readings
 - **Authentication System**: Secure, flexible login system
+- **Demo Authentication Mode**: Local login fallback when Firebase isn't configured
 - **Saints and Prayers APIs**: Programmatic access to spiritual content
 - **Responsive Design**: Works on all devices
 - **Admin Dashboard**: Content management for administrators
@@ -241,14 +242,16 @@ This is a modern Next.js application. Firebase handles authentication and Firest
 
 ### Environment Variables
 
-For successful deployment on Vercel, set the following environment variables:
+For successful deployment on Vercel, set the following environment variables.
+If you do not have Firebase configured yet, simply leave the Firebase values
+blank and the app will fall back to a demo login mode:
 
 ```
-NEXT_PUBLIC_SKIP_AUTH_CHECK=true  # Required during build 
+NEXT_PUBLIC_SKIP_AUTH_CHECK=true  # Required during build
 # TODO: Google Cloud SQL credentials
 ```
 
-If you want to use Firebase authentication, also add:
+If Firebase authentication is configured, add the following as well:
 
 ```
 NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
@@ -307,7 +310,7 @@ TODO: integrate Google Cloud SQL for database operations. All analytics tables w
 
 ## Authentication
 
-Authentication is handled by Firebase Auth. Make sure to set up your Firebase project correctly with the right authentication methods enabled.
+Authentication is handled by Firebase Auth. When `NEXT_PUBLIC_SKIP_AUTH_CHECK` is set or Firebase API keys are not provided, the app automatically enters a demo mode that stores a `demoUser` in local storage. This allows you to explore the UI without configuring Firebase.
 
 ## Troubleshooting Build Issues
 

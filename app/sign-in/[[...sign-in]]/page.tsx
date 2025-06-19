@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ChiRho } from "@/components/chi-rho"
 import { Button } from "@/components/ui/button"
-import { 
-  signInWithEmailAndPassword, 
-  GoogleAuthProvider, 
+import {
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
   signInWithPopup,
   browserSessionPersistence,
   setPersistence
@@ -20,6 +20,10 @@ export default function SignInPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const skipAuth =
+    process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true' ||
+    !process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'placeholder-api-key'
 
   useEffect(() => {
     // Set session persistence
@@ -40,6 +44,17 @@ export default function SignInPage() {
       return
     }
 
+    if (skipAuth) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'demoUser',
+          JSON.stringify({ name: 'Demo User', email })
+        )
+      }
+      router.push("/")
+      return
+    }
+
     try {
       await signInWithEmailAndPassword(auth, email, password)
       router.push("/")
@@ -53,6 +68,17 @@ export default function SignInPage() {
   const handleGoogleSignIn = async () => {
     setLoading(true)
     setError("")
+
+    if (skipAuth) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'demoUser',
+          JSON.stringify({ name: 'Demo User', email: 'demo@example.com' })
+        )
+      }
+      router.push("/")
+      return
+    }
 
     try {
       const provider = new GoogleAuthProvider()
