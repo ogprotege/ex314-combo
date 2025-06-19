@@ -20,12 +20,28 @@ export const FallbackLogin = ({ returnTo }: FallbackLoginProps) => {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const skipAuth =
+    process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true' ||
+    !process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'placeholder-api-key'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setIsLoading(true)
     
+    if (skipAuth) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'demoUser',
+          JSON.stringify({ name: 'Demo User', email })
+        )
+      }
+      router.push(returnTo || "/chat")
+      setIsLoading(false)
+      return
+    }
+
     try {
       await signInWithEmailAndPassword(auth, email, password)
       router.push(returnTo || "/chat")
@@ -60,3 +76,4 @@ export const FallbackLogin = ({ returnTo }: FallbackLoginProps) => {
     </form>
   )
 }
+

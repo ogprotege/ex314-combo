@@ -40,8 +40,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   
   useEffect(() => {
-    // Skip auth check during build time
-    if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
+    // Skip auth check during build time or when no Firebase key is provided
+    if (
+      process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true' ||
+      !process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+      process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'placeholder-api-key'
+    ) {
+      const storedUser =
+        typeof window !== 'undefined' ? localStorage.getItem('demoUser') : null
+      if (storedUser) {
+        setCurrentUser(JSON.parse(storedUser))
+      } else {
+        setCurrentUser({ name: 'Demo User', email: 'demo@example.com' })
+      }
+      setIsAuthenticated(true)
       setIsLoading(false)
       return
     }
@@ -85,15 +97,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = () => {
+    if (
+      process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true' ||
+      !process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+      process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'placeholder-api-key'
+    ) {
+      const demo = { name: 'Demo User', email: emailFromStorage() }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('demoUser', JSON.stringify(demo))
+      }
+      setCurrentUser(demo)
+      setIsAuthenticated(true)
+      setIsLoading(false)
+      return
+    }
     window.location.href = "/sign-in"
   }
 
   const logout = async () => {
+    if (
+      process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true' ||
+      !process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+      process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'placeholder-api-key'
+    ) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('demoUser')
+      }
+      setCurrentUser(null)
+      setIsAuthenticated(false)
+      window.location.href = "/"
+      return
+    }
+
     try {
       await firebaseSignOut(auth)
       window.location.href = "/"
     } catch (error) {
       console.error('Error signing out:', error)
+    }
+  }
+
+  function emailFromStorage() {
+    if (typeof window === 'undefined') return 'demo@example.com'
+    const stored = localStorage.getItem('demoUser')
+    if (!stored) return 'demo@example.com'
+    try {
+      const parsed = JSON.parse(stored)
+      return parsed.email || 'demo@example.com'
+    } catch {
+      return 'demo@example.com'
     }
   }
 
