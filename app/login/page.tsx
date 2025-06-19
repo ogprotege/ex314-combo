@@ -39,11 +39,11 @@ export default function LoginPage() {
         name: email.split("@")[0],
         picture: null,
       }
-      localStorage.setItem("user", JSON.stringify(user))
+      localStorage.setItem("demoUser", JSON.stringify(user))
 
       setMessage("Login successful! Redirecting...")
       setTimeout(() => {
-        router.push("/")
+        router.push("/chat")
       }, 1500)
     } catch (err) {
       setError("An unexpected error occurred. Please try again.")

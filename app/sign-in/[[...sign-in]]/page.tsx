@@ -51,13 +51,13 @@ export default function SignInPage() {
           JSON.stringify({ name: 'Demo User', email })
         )
       }
-      router.push("/")
+      router.push("/chat")
       return
     }
 
     try {
       await signInWithEmailAndPassword(auth, email, password)
-      router.push("/")
+      router.push("/chat")
     } catch (error: any) {
       console.error("Error signing in:", error)
       setError(error.message || "Failed to sign in")
@@ -76,14 +76,14 @@ export default function SignInPage() {
           JSON.stringify({ name: 'Demo User', email: 'demo@example.com' })
         )
       }
-      router.push("/")
+      router.push("/chat")
       return
     }
 
     try {
       const provider = new GoogleAuthProvider()
       await signInWithPopup(auth, provider)
-      router.push("/")
+      router.push("/chat")
     } catch (error: any) {
       console.error("Error signing in with Google:", error)
       setError(error.message || "Failed to sign in with Google")
