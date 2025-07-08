@@ -1,6 +1,14 @@
 import { type NextRequest } from "next/server"
 import { OpenAI } from "openai"
 import { selectModel } from "@/lib/ai-config"
+import { conversationLogger } from "@/lib/logging/conversation-logger"
+import { biasDetector } from "@/lib/logging/bias-detector"
+import crypto from "crypto"
+
+// Hash IP addresses for privacy
+function hashIP(ip: string): string {
+  return crypto.createHash('sha256').update(ip + process.env.IP_SALT || 'default-salt').digest('hex').substring(0, 16);
+}
 
 // System prompt to guide the model's behavior
 const systemPrompt = `You are Ex314.ai, a Catholic AI assistant designed to provide information and guidance on Catholic theology, liturgy, and practice.
@@ -17,6 +25,9 @@ const openai = new OpenAI({
 });
 
 export async function POST(req: NextRequest) {
+  let conversationId: string | null = null;
+  const startTime = Date.now();
+  
   try {
     // Skip real API calls during build time
     if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true' || openaiApiKey === 'sk-placeholder-for-build') {
@@ -26,10 +37,34 @@ export async function POST(req: NextRequest) {
       });
     }
     
-    const { messages, stream = false } = await req.json()
+    const { messages, stream = false, sessionId, userId } = await req.json()
 
     // Get the user's latest message
     const latestMessage = messages[messages.length - 1].content
+
+    // Create conversation log if this is the first message
+    if (messages.length === 1 || !conversationId) {
+      conversationId = await conversationLogger.createConversation({
+        userId,
+        sessionId: sessionId || 'anonymous',
+        modelConfig: {
+          model: 'gpt-4o', // Will be updated when you switch to custom model
+          temperature: 0.7,
+          systemPrompt,
+          provider: 'openai'
+        }
+      });
+    }
+
+    // Log user message
+    await conversationLogger.logMessage({
+      conversationId,
+      role: 'user',
+      content: latestMessage,
+      metadata: {
+        timestamp: new Date()
+      }
+    });
 
     // Format messages for the AI
     const formattedMessages = [{ role: "system", content: systemPrompt }, ...messages]
@@ -73,9 +108,46 @@ export async function POST(req: NextRequest) {
           messages: formattedMessages
         });
 
+        const assistantResponse = completion.choices[0].message.content;
+        const latency = Date.now() - startTime;
+
+        // Log assistant response with comprehensive analysis
+        await conversationLogger.logMessage({
+          conversationId,
+          role: 'assistant',
+          content: assistantResponse || '',
+          metadata: {
+            timestamp: new Date(),
+            latency,
+            modelVersion: 'gpt-4o',
+            promptTokens: completion.usage?.prompt_tokens,
+            completionTokens: completion.usage?.completion_tokens,
+            tokenCount: completion.usage?.total_tokens,
+            temperature: 0.7, // Default OpenAI temperature
+            maxTokens: 12228
+          },
+          analysis: {
+            biasIndicators: await biasDetector.detectBias(assistantResponse || '') as any,
+            theologicalTopics: biasDetector.extractTheologicalTopics(assistantResponse || ''),
+            citations: biasDetector.analyzeCitations(assistantResponse || ''),
+            modelFit: biasDetector.detectModelFit(assistantResponse || '', latestMessage)
+          },
+          adminMetadata: {
+            userAgent: req.headers.get('user-agent') || undefined,
+            ipHash: hashIP(req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'),
+            requestHeaders: {
+              'x-forwarded-for': req.headers.get('x-forwarded-for') || '',
+              'x-real-ip': req.headers.get('x-real-ip') || '',
+              'referer': req.headers.get('referer') || ''
+            },
+            flaggedForReview: false // Will be set to true if bias/fit issues detected
+          }
+        });
+
         return Response.json({ 
-          text: completion.choices[0].message.content,
-          model: "openai-fallback"
+          text: assistantResponse,
+          model: "openai-fallback",
+          conversationId
         });
       }
     }
