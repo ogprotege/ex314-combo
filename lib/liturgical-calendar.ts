@@ -1,3 +1,5 @@
+import { getCurrentLiturgicalSeason as getDynamicSeason, getLiturgicalYear as getDynamicYear, getFeastForDate as getDynamicFeast, calculateLiturgicalSeasons } from "./liturgical-calculator"
+
 export type LiturgicalSeason = {
   name: string
   description: string
@@ -150,13 +152,31 @@ export function getCurrentLiturgicalSeason(date: Date): LiturgicalSeason | null 
     return null
   }
 
-  // Find the season that contains the given date
-  const currentSeason = liturgicalSeasons2025.find((season) => date >= season.startDate && date <= season.endDate)
-
-  return currentSeason || null
+  // Use dynamic calculation for any year
+  const dynamicSeason = getDynamicSeason(date)
+  
+  // Map the dynamic season to our format
+  const seasonDescriptions: Record<string, string> = {
+    "Advent": "Advent is a season of preparation for the coming of Christ at Christmas and his second coming at the end of time.",
+    "Christmas Time": "Christmas Time celebrates the birth of Jesus Christ and extends through the Baptism of the Lord.",
+    "Ordinary Time": "Ordinary Time is the longest liturgical season, focusing on the life and teachings of Jesus Christ.",
+    "Ordinary Time I": "Ordinary Time is the longest liturgical season, focusing on the life and teachings of Jesus Christ.",
+    "Ordinary Time II": "Ordinary Time is the longest liturgical season, focusing on the life and teachings of Jesus Christ.",
+    "Lent": "Lent is a 40-day period of prayer, fasting, and almsgiving in preparation for Easter.",
+    "Easter Triduum": "The Easter Triduum is the three-day period from Holy Thursday through Easter Sunday, the high point of the liturgical year.",
+    "Easter Time": "Easter Time celebrates the resurrection of Jesus Christ and extends for 50 days until Pentecost."
+  }
+  
+  return {
+    name: dynamicSeason.name,
+    description: seasonDescriptions[dynamicSeason.name] || `The ${dynamicSeason.name} season`,
+    color: dynamicSeason.color as "green" | "purple" | "white" | "red" | "rose",
+    startDate: dynamicSeason.start || new Date(),
+    endDate: dynamicSeason.end || new Date()
+  }
 }
 
-export function getFeastForDate(date: Date): Feast | null {
+export function getFeastDetails(date: Date): Feast | null {
   // Ensure we have a valid date
   if (!(date instanceof Date) || isNaN(date.getTime())) {
     return null
@@ -165,7 +185,18 @@ export function getFeastForDate(date: Date): Feast | null {
   const month = date.getMonth() + 1 // JavaScript months are 0-indexed
   const day = date.getDate()
 
-  // Check for fixed feasts
+  // First check dynamic feast calculator for moveable feasts
+  const dynamicFeast = getDynamicFeast(date)
+  if (dynamicFeast) {
+    return {
+      name: dynamicFeast.name,
+      type: dynamicFeast.type as "solemnity" | "feast" | "memorial" | "optional",
+      color: dynamicFeast.color as "white" | "red" | "green" | "purple" | "rose",
+      description: `Celebration of ${dynamicFeast.name}`
+    }
+  }
+
+  // Check for fixed feasts with details
   const fixedFeast = fixedFeasts.find((feast) => feast.month === month && feast.day === day)
 
   if (fixedFeast) {
@@ -232,6 +263,16 @@ export function getLiturgicalColorText(color: string): string {
     default:
       return "text-gray-600"
   }
+}
+
+// Get liturgical year (A, B, or C)
+export function getLiturgicalYear(date: Date): string {
+  return getDynamicYear(date)
+}
+
+// Export the getFeastForDate function for use in components
+export function getFeastForDate(date: Date): Feast | null {
+  return getFeastDetails(date)
 }
 
 // Helper function to get the liturgical color border

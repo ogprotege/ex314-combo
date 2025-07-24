@@ -1,19 +1,5 @@
 import { NextRequest } from 'next/server';
-import path from 'path';
-import fs from 'fs';
-
-// Import saints data if it exists in a static file
-let saintsData: any[] = [];
-try {
-  // This is just an example - adjust the path to where your saints data is stored
-  const dataPath = path.join(process.cwd(), 'lib', 'saints-data.ts');
-  if (fs.existsSync(dataPath)) {
-    const { saints } = require('@/lib/saints-data');
-    saintsData = saints;
-  }
-} catch (error) {
-  console.error('Error loading saints data:', error);
-}
+import { getAllSaints } from '@/lib/saints-data';
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,12 +20,22 @@ export async function GET(req: NextRequest) {
     const month = today.getMonth() + 1; // JavaScript months are 0-based
     const day = today.getDate();
     
+    // Get all saints data
+    const saintsData = await getAllSaints();
+    
     // Find saint whose feast day matches today's date
     const saintOfDay = saintsData.find(saint => {
-      const feastDate = saint.feastDay.split('-');
-      const feastMonth = parseInt(feastDate[0], 10);
-      const feastDay = parseInt(feastDate[1], 10);
-      return feastMonth === month && feastDay === day;
+      // Parse the feast date (e.g., "January 28" or "October 15")
+      const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+      const parts = saint.feastDate.split(' ');
+      if (parts.length !== 2) return false;
+      
+      const monthName = parts[0];
+      const dayNum = parseInt(parts[1], 10);
+      const monthNum = months.indexOf(monthName) + 1;
+      
+      return monthNum === month && dayNum === day;
     });
     
     if (saintOfDay) {
@@ -47,10 +43,12 @@ export async function GET(req: NextRequest) {
     }
     
     // If no saint found for today, return a default/fallback
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                        'July', 'August', 'September', 'October', 'November', 'December'];
     return Response.json({
       name: "No Saint Found",
-      feastDay: `${month}-${day}`,
-      description: "There is no saint listed for today in our database."
+      feastDate: `${monthNames[month - 1]} ${day}`,
+      shortBio: "There is no saint listed for today in our database."
     });
     
   } catch (error) {

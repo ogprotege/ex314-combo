@@ -34,7 +34,7 @@ export function LiturgicalThemeProvider({ children }: { children: React.ReactNod
     }
 
     // Get current liturgical season and color
-    const today = new Date(2025, 4, 9) // May 9, 2025
+    const today = new Date() // Use actual current date
     const season = getCurrentLiturgicalSeason(today)
     if (season) {
       setCurrentLiturgicalColor(season.color.toLowerCase())

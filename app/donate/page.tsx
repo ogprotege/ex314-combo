@@ -159,7 +159,7 @@ export default function DonatePage() {
               <Link href="https://facebook.com/ex314ai" className="text-sm text-gray-600 hover:text-gray-900">
                 Facebook
               </Link>
-              <Link href="https://instagram.com/ex314ai" className="text-sm text-gray-600 hover:text-gray-900">
+              <Link href="https://instagram.com/ex314" className="text-sm text-gray-600 hover:text-gray-900">
                 Instagram
               </Link>
             </div>

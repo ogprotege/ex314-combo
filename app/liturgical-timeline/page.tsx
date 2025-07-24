@@ -79,7 +79,7 @@ export default function LiturgicalTimelinePage() {
               <Link href="https://facebook.com/ex314ai" aria-label="Facebook">
                 <FacebookIcon size={18} className="text-gray-600 hover:text-gray-900" />
               </Link>
-              <Link href="https://instagram.com/ex314ai" aria-label="Instagram">
+              <Link href="https://instagram.com/ex314" aria-label="Instagram">
                 <InstagramIcon size={18} className="text-gray-600 hover:text-gray-900" />
               </Link>
             </div>

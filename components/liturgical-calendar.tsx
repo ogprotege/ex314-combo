@@ -30,8 +30,8 @@ export default function LiturgicalCalendar() {
 
   // Ensure we have the current date set correctly (May 12, 2025)
   useEffect(() => {
-    // We'll use May 12, 2025 as our current date
-    const today = new Date(2025, 4, 12) // Month is 0-indexed, so 4 = May
+    // Use the actual current date
+    const today = new Date()
     setCurrentDate(today)
     setCurrentMonth(today)
     setSelectedDate(today)
@@ -233,7 +233,7 @@ function TodayCelebration({ date }: { date: Date }) {
         <div>
           <h4 className="font-medium mb-2">Readings:</h4>
           <ul className="list-disc list-inside space-y-1">
-            {feast.readings.map((reading, index) => (
+            {feast.readings.map((reading: string, index: number) => (
               <li key={index}>{reading}</li>
             ))}
           </ul>

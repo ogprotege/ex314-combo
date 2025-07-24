@@ -13,6 +13,7 @@ import { AuthButtons } from "@/components/auth-buttons"
 import { AuthProvider } from "@/context/AuthContext"
 import { ChatProvider } from "@/context/ChatContext"
 import { ChiRho } from "@/components/chi-rho"
+import { AdminLink } from "@/components/admin/AdminLink"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -85,6 +86,7 @@ export default function RootLayout({
                           <Link href="/chat" className="transition-colors hover:text-primary font-semibold">
                             Chat
                           </Link>
+                          <AdminLink />
                         </nav>
                       </div>
                       <AuthButtons />

@@ -13,7 +13,7 @@ export function SiteFooter() {
           </Link>
 
           <div className="flex items-center gap-4">
-            <Link href="https://instagram.com/ex314ai" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+            <Link href="https://instagram.com/ex314" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
               <Instagram className="h-5 w-5 text-gray-600 hover:text-gray-900" />
             </Link>
             <Link href="https://twitter.com/ex314ai" target="_blank" rel="noopener noreferrer" aria-label="Twitter/X">
