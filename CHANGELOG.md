@@ -5,7 +5,7 @@ All notable changes to Ex314.ai will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-01-25
+## [Unreleased] - 2025-06-25
 
 ### Added
 - Enhanced README documentation with comprehensive feature coverage and technical architecture details
@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Technical specification alignment with actual implementation and build process
 - API documentation completeness with all available endpoints and parameters
 
-## [0.3.2] - 2025-01-24
+## [0.3.2] - 2025-06-24
 
 ### Added
 - Complete saints database expansion through July (212 total saints)
@@ -72,7 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated saint-related API endpoints to handle expanded data schema with proper validation
 - Optimized build performance with advanced null/undefined handling and type checking
 
-## [0.3.1] - 2025-01-08
+## [0.3.1] - 2025-06-08
 
 ### Added
 - Comprehensive logging system for theological AI monitoring
@@ -114,7 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separated admin metadata from user-visible data
 - Updated Firestore rules to restrict log access
 
-## [0.3.0] - 2025-01-04
+## [0.3.0] - 2025-06-04
 
 ### Added
 - Saint of the Day API endpoint
