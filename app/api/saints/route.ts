@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server"
-import { getAllSaints, getSaint } from "@/lib/saints-data"
+import { getAllSaints, getSaint, getSaintOfTheDay } from "@/lib/saints-data"
 
 export async function GET(req: NextRequest) {
   // Get URL and params
@@ -9,6 +9,8 @@ export async function GET(req: NextRequest) {
   const type = searchParams.get("type")
   const patronOf = searchParams.get("patronOf")
   const limit = parseInt(searchParams.get("limit") || "0")
+  const today = searchParams.get("today") // New parameter for saint of the day
+  const date = searchParams.get("date") // Optional date for specific day
   
   try {
     // If an ID is provided, return just that saint
@@ -16,6 +18,29 @@ export async function GET(req: NextRequest) {
       const saint = await getSaint(id)
       if (!saint) {
         return Response.json({ error: "Saint not found" }, { status: 404 })
+      }
+      return Response.json(saint)
+    }
+    
+    // If today parameter is provided, return saint of the day
+    if (today === "true") {
+      let targetDate: Date
+      if (date) {
+        targetDate = new Date(date)
+        if (isNaN(targetDate.getTime())) {
+          targetDate = new Date()
+        }
+      } else {
+        targetDate = new Date()
+      }
+      
+      const saint = await getSaintOfTheDay(targetDate)
+      if (!saint) {
+        return Response.json({ 
+          name: "No Saint Found",
+          feastDate: targetDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
+          shortBio: "There is no saint listed for today in our database."
+        })
       }
       return Response.json(saint)
     }

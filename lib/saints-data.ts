@@ -8356,8 +8356,44 @@ export async function getAllSaints(): Promise<Saint[]> {
 }
 
 export async function getSaintOfTheDay(date?: Date): Promise<Saint | null> {
+  // Import liturgical calendar functions
+  const { getCurrentLiturgicalSeason, getFeastForDate } = await import('./liturgical-calendar');
+  
   // Use current date if not provided
   const currentDate = date || new Date();
+  
+  // Check for major liturgical feast first (these override saints)
+  const liturgicalFeast = getFeastForDate(currentDate);
+  if (liturgicalFeast && (liturgicalFeast.type === 'solemnity' || liturgicalFeast.type === 'feast')) {
+    // Create a saint-like object for major feasts
+    return {
+      id: `feast-${liturgicalFeast.name.toLowerCase().replace(/\s+/g, '-')}`,
+      name: liturgicalFeast.name,
+      feastDate: currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
+      type: 'Other',
+      title: liturgicalFeast.type === 'solemnity' ? 'Solemnity' : 'Feast',
+      shortBio: liturgicalFeast.description || `Celebration of ${liturgicalFeast.name}`,
+      life: liturgicalFeast.description || `Today the Church celebrates ${liturgicalFeast.name}, a major ${liturgicalFeast.type} in the liturgical calendar.`,
+      prayers: [{
+        title: `Prayer for ${liturgicalFeast.name}`,
+        text: `Lord, on this feast of ${liturgicalFeast.name}, we ask for your blessing and grace. Help us to grow in faith and love. Amen.`
+      }],
+      quotes: [{
+        text: "Let us celebrate with joy this holy day.",
+        source: "Liturgical tradition"
+      }],
+      readings: liturgicalFeast.readings ? liturgicalFeast.readings.map((reading, index) => ({
+        title: `Reading ${index + 1}`,
+        citation: reading,
+        text: "See daily readings for the complete text."
+      })) : [{
+        title: "Liturgical Reading",
+        citation: "See today's liturgy",
+        text: "Refer to today's liturgical readings for this feast."
+      }],
+      liturgicalColor: (liturgicalFeast.color?.charAt(0).toUpperCase() + liturgicalFeast.color?.slice(1)) as 'Red' | 'White' | 'Green' | 'Purple' | 'Rose' || 'White'
+    };
+  }
   
   // Format the date to match our feastDate format ("Month Day")
   const monthNames = [
@@ -8370,8 +8406,30 @@ export async function getSaintOfTheDay(date?: Date): Promise<Saint | null> {
   const searchDate = `${month} ${day}`;
   
   // Find saint by feast date
-  const saint = saintsData.find(saint => saint.feastDate === searchDate);
+  let saint = saintsData.find(saint => saint.feastDate === searchDate);
   
-  // If no saint found for this specific date, return the first saint as fallback
-  return saint || saintsData[0];
+  // If saint found, update its liturgical color to match current liturgical season
+  if (saint) {
+    const currentSeason = getCurrentLiturgicalSeason(currentDate);
+    if (currentSeason) {
+      // Create a copy with updated liturgical color
+      saint = {
+        ...saint,
+        liturgicalColor: (currentSeason.color.charAt(0).toUpperCase() + currentSeason.color.slice(1)) as 'Red' | 'White' | 'Green' | 'Purple' | 'Rose'
+      };
+    }
+    return saint;
+  }
+  
+  // If no saint found for this specific date, return a generic saint with current liturgical color
+  const currentSeason = getCurrentLiturgicalSeason(currentDate);
+  const fallbackSaint = saintsData[0];
+  
+  return {
+    ...fallbackSaint,
+    name: "Saint of the Day",
+    feastDate: searchDate,
+    shortBio: `No specific saint is commemorated today in our database. Today we celebrate the communion of all saints in the ${currentSeason?.name || 'liturgical season'}.`,
+    liturgicalColor: currentSeason ? (currentSeason.color.charAt(0).toUpperCase() + currentSeason.color.slice(1)) as 'Red' | 'White' | 'Green' | 'Purple' | 'Rose' : 'Green'
+  };
 } 
