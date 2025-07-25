@@ -139,7 +139,7 @@ export default async function SaintPage({ params }: SaintPageProps) {
                 </div>
               )}
               
-              {saint.patronOf.length > 0 && (
+              {saint.patronOf && saint.patronOf.length > 0 && (
                 <div className="col-span-2">
                   <span className="font-medium">Patron of:</span>{" "}
                   {saint.patronOf.join(", ")}

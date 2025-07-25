@@ -5,7 +5,37 @@ All notable changes to Ex314.ai will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-01-08
+## [Unreleased] - 2025-01-24
+
+### Added
+- Complete saints database expansion through July (212 total saints)
+  - Added 31 saints for June covering major feast days and celebrations
+  - Added 31 saints for July including significant martyrs and confessors
+  - Enhanced Saint interface with comprehensive biographical data fields
+  - Added patronage information, spiritual themes, and key life events
+
+### Changed
+- Updated Saint TypeScript interface to support expanded data structure
+  - Added optional fields: birthYear, deathYear, canonizationYear, patronage, biography, keyEvents, spiritualThemes
+  - Made core biographical fields (shortBio, life, legacy, patronOf) optional for data flexibility
+- Fixed TypeScript type safety issues across saints-related components
+  - Added null checks for patronOf property in API routes and display components
+  - Resolved all TypeScript compilation errors for production builds
+
+### Fixed
+- Saints data TypeScript compliance and build errors
+- Quote formatting issues in saints biographical data
+- Null value handling in saint year fields
+- API route type safety for saint filtering and patronage searches
+- Saint detail page rendering with optional biographical fields
+
+### Technical
+- Enhanced build process to ensure zero TypeScript errors
+- Improved saints data structure consistency and type safety
+- Updated saint-related API endpoints to handle expanded data schema
+- Optimized build performance with proper null/undefined handling
+
+## [0.3.1] - 2025-01-08
 
 ### Added
 - Comprehensive logging system for theological AI monitoring

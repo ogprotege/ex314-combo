@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     
     if (patronOf) {
       saints = saints.filter(saint => 
-        saint.patronOf.some(patron => 
+        saint.patronOf?.some(patron => 
           patron.toLowerCase().includes(patronOf.toLowerCase())
         )
       )
