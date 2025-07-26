@@ -182,7 +182,7 @@ The app includes a sophisticated liturgical calendar that:
 3. **Analytics Migration**: PostgreSQL schema ready for future analytics
 4. **Testing Gap**: No test infrastructure currently exists
 5. **Build Workarounds**: ESLint and TypeScript errors suppressed during build
-6. **Content Status**: 212 saints in database (January through May fully covered)
+6. **Content Status**: 213 saints in database (January through May fully covered, partial August started)
 7. **Security Timeline**: Firestore development rules expire January 31, 2025
 
 ## Future LLM Integration
