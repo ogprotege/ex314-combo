@@ -165,14 +165,19 @@ END;
 $$ language 'plpgsql';
 
 -- Add triggers for updated_at
+-- Drop the trigger if it exists, then create it fresh
+DROP TRIGGER IF EXISTS update_sessions_updated_at ON sessions;
 CREATE TRIGGER update_sessions_updated_at BEFORE UPDATE ON sessions
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- Drop the trigger if it exists, then create it fresh
+DROP TRIGGER IF EXISTS update_chat_conversations_updated_at ON chat_conversations;
 CREATE TRIGGER update_chat_conversations_updated_at BEFORE UPDATE ON chat_conversations
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Views for Analytics
-CREATE VIEW IF NOT EXISTS daily_active_users AS
+DROP VIEW IF EXISTS daily_active_users;
+CREATE VIEW daily_active_users AS
 SELECT 
   DATE(created_at) as date,
   COUNT(DISTINCT user_id) as active_users
@@ -180,7 +185,9 @@ FROM sessions
 WHERE user_id IS NOT NULL
 GROUP BY DATE(created_at);
 
-CREATE VIEW IF NOT EXISTS popular_pages AS
+-- Page view statistics
+DROP VIEW IF EXISTS page_view_stats;
+CREATE VIEW page_view_stats AS
 SELECT 
   path,
   COUNT(*) as view_count,
@@ -189,7 +196,8 @@ FROM page_views
 GROUP BY path
 ORDER BY view_count DESC;
 
-CREATE VIEW IF NOT EXISTS chat_usage_stats AS
+DROP VIEW IF EXISTS chat_usage_stats;
+CREATE VIEW chat_usage_stats AS
 SELECT 
   DATE(created_at) as date,
   COUNT(DISTINCT user_id) as unique_users,

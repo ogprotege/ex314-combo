@@ -1,0 +1,97 @@
+#!/usr/bin/env node
+
+// Load environment variables from .env.local before any imports
+// This ensures that DATABASE_URL is available when connection modules are imported
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+
+// Import database connection functions after environment variables are loaded
+import { getPool, closeDatabaseConnections } from '../lib/database/connection';
+import fs from 'fs/promises';
+import path from 'path';
+
+/**
+ * Initialize the complete database schema including analytics and content tables
+ * This function creates all necessary tables, indexes, and materialized views
+ * required for the ex314-combo theological AI application
+ */
+async function initializeDatabase() {
+  console.log('🚀 Initializing database...');
+  
+  try {
+    // Get database connection pool - this now has access to DATABASE_URL
+    const pool = getPool();
+    
+    // Create analytics tables for user engagement and performance monitoring
+    console.log('📊 Creating analytics tables...');
+    const analyticsSchema = await fs.readFile(
+      path.join(__dirname, 'init-database.sql'),
+      'utf-8'
+    );
+    await pool.query(analyticsSchema);
+    console.log('✅ Analytics tables created');
+    
+    // Create content tables for saints, prayers, readings, and liturgical data
+    console.log('📚 Creating content tables...');
+    const contentSchema = await fs.readFile(
+      path.join(__dirname, 'content-schema.sql'),
+      'utf-8'
+    );
+    await pool.query(contentSchema);
+    console.log('✅ Content tables created');
+    
+    // Verify that all tables were created successfully
+    console.log('🔍 Verifying tables...');
+    const tablesResult = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      ORDER BY table_name
+    `);
+    
+    console.log('📋 Created tables:');
+    tablesResult.rows.forEach(row => {
+      console.log(`  - ${row.table_name}`);
+    });
+    
+    // Check that performance optimization indexes were created
+    const indexesResult = await pool.query(`
+      SELECT indexname, tablename 
+      FROM pg_indexes 
+      WHERE schemaname = 'public'
+      ORDER BY tablename, indexname
+    `);
+    
+    console.log(`\n📇 Created ${indexesResult.rows.length} indexes`);
+    
+    // Check for materialized views that provide query performance optimization
+    const viewsResult = await pool.query(`
+      SELECT matviewname 
+      FROM pg_matviews 
+      WHERE schemaname = 'public'
+      ORDER BY matviewname
+    `);
+    
+    if (viewsResult.rows.length > 0) {
+      console.log('\n👁️ Created materialized views:');
+      viewsResult.rows.forEach(row => {
+        console.log(`  - ${row.matviewname}`);
+      });
+    }
+    
+    console.log('\n✨ Database initialization complete!');
+    
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error);
+    process.exit(1);
+  } finally {
+    // Always close database connections to prevent connection leaks
+    await closeDatabaseConnections();
+  }
+}
+
+// Execute the initialization function if this script is run directly
+// This allows the script to be imported as a module or executed standalone
+if (require.main === module) {
+  initializeDatabase();
+}

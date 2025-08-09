@@ -1,4 +1,15 @@
 import { NextRequest } from "next/server"
+import { z } from "zod"
+import { checkRateLimit } from "@/lib/database/cache-middleware"
+
+// Input validation schema for prayer queries
+const prayerQuerySchema = z.object({
+  category: z.enum(['basic', 'marian', 'devotional', 'liturgical', 'saints']).optional(),
+  language: z.enum(['english', 'latin', 'spanish']).optional(),
+  tag: z.string().optional(),
+  limit: z.string().regex(/^\d+$/).transform(Number).pipe(z.number().min(1).max(100)).optional(),
+  search: z.string().min(1).max(100).optional()
+})
 
 // Define prayer types
 type Prayer = {
@@ -64,7 +75,43 @@ const prayers: Prayer[] = [
 
 export async function GET(req: NextRequest) {
   try {
+    // Rate limiting
+    const clientId = req.headers.get('x-forwarded-for') || 
+                    req.headers.get('x-real-ip') || 
+                    'anonymous';
+    
+    const rateLimit = await checkRateLimit(clientId, 60, 60); // 60 req/min
+    
+    if (!rateLimit.allowed) {
+      const retryAfterSeconds = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
+      return Response.json(
+        { error: 'Rate limit exceeded' },
+        { 
+          status: 429,
+          headers: { 'Retry-After': String(retryAfterSeconds) }
+        }
+      );
+    }
+    
     const url = new URL(req.url)
+    
+    // Validate query parameters
+    const queryParams = {
+      category: url.searchParams.get("category"),
+      tag: url.searchParams.get("tag"),
+      search: url.searchParams.get("search"),
+      limit: url.searchParams.get("limit")
+    }
+    
+    const validationResult = prayerQuerySchema.safeParse(queryParams)
+    
+    if (!validationResult.success && !url.searchParams.get("id")) {
+      return Response.json(
+        { error: 'Invalid parameters', details: validationResult.error.flatten() },
+        { status: 400 }
+      )
+    }
+    
     const id = url.searchParams.get("id")
     const category = url.searchParams.get("category")
     const tag = url.searchParams.get("tag")
@@ -110,7 +157,10 @@ export async function GET(req: NextRequest) {
     
     return Response.json(filteredPrayers)
   } catch (error) {
-    console.error("Error fetching prayers:", error)
+    // Log error securely (in production, use proper logging service)
+    if (process.env.NODE_ENV === 'development') {
+      console.error("Error fetching prayers:", error)
+    }
     return Response.json(
       { error: "Failed to fetch prayer data" },
       { status: 500 }

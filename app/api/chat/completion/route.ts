@@ -3,7 +3,27 @@ import { OpenAI } from "openai"
 import { selectModel } from "@/lib/ai-config"
 import { conversationLogger } from "@/lib/logging/conversation-logger"
 import { biasDetector } from "@/lib/logging/bias-detector"
+import { checkRateLimit } from "@/lib/database/cache-middleware"
 import crypto from "crypto"
+import { z } from "zod"
+
+// Input validation schema
+const chatRequestSchema = z.object({
+  messages: z.array(z.object({
+    role: z.enum(['user', 'assistant', 'system']),
+    content: z.string().min(1).max(10000)
+  })).min(1).max(50),
+  stream: z.boolean().optional().default(false),
+  sessionId: z.string().optional(),
+  userId: z.string().optional(),
+  conversationId: z.string().optional()
+})
+
+// Type for OpenAI messages
+type ChatMessage = {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
 
 // Hash IP addresses for privacy
 function hashIP(ip: string): string {
@@ -29,6 +49,33 @@ export async function POST(req: NextRequest) {
   const startTime = Date.now();
   
   try {
+    // Extract client identifier for rate limiting
+    const clientId = req.headers.get('x-forwarded-for') || 
+                    req.headers.get('x-real-ip') || 
+                    'anonymous';
+    
+    // Check rate limit: 10 requests per minute for chat API
+    const rateLimit = await checkRateLimit(clientId, 10, 60);
+    
+    if (!rateLimit.allowed) {
+      const retryAfterSeconds = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
+      return Response.json(
+        { 
+          error: 'Rate limit exceeded. Please wait before sending more messages.',
+          retryAfter: retryAfterSeconds 
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '10',
+            'X-RateLimit-Remaining': String(rateLimit.remaining),
+            'X-RateLimit-Reset': new Date(rateLimit.resetAt).toISOString(),
+            'Retry-After': String(retryAfterSeconds)
+          }
+        }
+      );
+    }
+    
     // Skip real API calls during build time
     if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true' || openaiApiKey === 'sk-placeholder-for-build') {
       return Response.json({ 
@@ -37,7 +84,18 @@ export async function POST(req: NextRequest) {
       });
     }
     
-    const { messages, stream = false, sessionId, userId } = await req.json()
+    // Parse and validate request body
+    const body = await req.json()
+    const validationResult = chatRequestSchema.safeParse(body)
+    
+    if (!validationResult.success) {
+      return Response.json(
+        { error: 'Invalid request', details: validationResult.error.flatten() },
+        { status: 400 }
+      )
+    }
+    
+    const { messages, stream = false, sessionId, userId } = validationResult.data
 
     // Get the user's latest message
     const latestMessage = messages[messages.length - 1].content
@@ -82,7 +140,7 @@ export async function POST(req: NextRequest) {
         // Stream the response using OpenAI
         const response = await openai.chat.completions.create({
           model: "gpt-4o",
-          messages: formattedMessages,
+          messages: formattedMessages as any, // Type cast for OpenAI SDK
           stream: true
         });
 
@@ -105,7 +163,7 @@ export async function POST(req: NextRequest) {
         // Generate a complete response using OpenAI
         const completion = await openai.chat.completions.create({
           model: "gpt-4o",
-          messages: formattedMessages
+          messages: formattedMessages as any // Type cast for OpenAI SDK
         });
 
         const assistantResponse = completion.choices[0].message.content;

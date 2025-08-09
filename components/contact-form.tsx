@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 // import { Turnstile } from "@/components/turnstile"
 import { submitContactForm } from "@/app/actions/contact-form"
 import { ChiRho } from "@/components/chi-rho"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 
 export function ContactForm() {
   const { toast } = useToast()

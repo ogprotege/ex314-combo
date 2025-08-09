@@ -1,16 +1,37 @@
-import { Metadata } from "next"
-import { getAllSaints } from "@/lib/saints-data"
-import Link from "next/link"
-import { ChiRho } from "@/components/chi-rho"
-import Image from "next/image"
+import { Metadata } from "next";
+import Link from "next/link";
+import { ChiRho } from "@/components/chi-rho";
+import SaintsClient from "./saints-client";
 
 export const metadata: Metadata = {
   title: "Saints Directory - Ex314.ai",
   description: "Explore the lives, teachings, and legacy of Catholic saints.",
+};
+
+// Fetch initial saints data (SSR for SEO)
+async function getInitialSaints() {
+  try {
+    // In production, use the actual API endpoint
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/saints?limit=30&page=1`, {
+      cache: 'no-store', // Always fetch fresh data on server
+    });
+    
+    if (!response.ok) {
+      console.error('Failed to fetch initial saints');
+      return [];
+    }
+    
+    const data = await response.json();
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching initial saints:', error);
+    return [];
+  }
 }
 
 export default async function SaintsDirectoryPage() {
-  const saints = await getAllSaints()
+  const initialSaints = await getInitialSaints();
   
   return (
     <main className="min-h-screen bg-white">
@@ -38,80 +59,28 @@ export default async function SaintsDirectoryPage() {
         </nav>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-2">Saints Directory</h1>
-        <p className="text-gray-600 mb-8">
-          Explore the lives, teachings, and legacy of Catholic saints.
-        </p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {saints.map((saint) => (
-            <Link 
-              key={saint.id} 
-              href={`/saints/${saint.id}`}
-              className="block group"
-            >
-              <div className="border border-gray-200 rounded-lg overflow-hidden transition-shadow hover:shadow-md">
-                <div className="aspect-w-16 aspect-h-9 bg-gray-100 flex items-center justify-center">
-                  {saint.imageUrl ? (
-                    <div className="relative h-full w-full">
-                      <Image
-                        src={saint.imageUrl}
-                        alt={saint.name}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <span className="text-5xl font-bold text-gray-300">{saint.name[0]}</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="p-4">
-                  <h2 className="text-lg font-bold mb-1 group-hover:text-blue-600">
-                    {saint.name}
-                  </h2>
-                  
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    <span className="px-2 py-1 bg-gray-100 rounded text-xs">
-                      {saint.feastDate}
-                    </span>
-                    
-                    <span className="px-2 py-1 bg-gray-100 rounded text-xs">
-                      {saint.type}
-                    </span>
-                  </div>
-                  
-                  <p className="text-gray-600 text-sm line-clamp-2">
-                    {saint.shortBio}
-                  </p>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
+      <SaintsClient initialSaints={initialSaints} />
       
       <footer className="bg-gray-100 py-8 px-4">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center mb-4 md:mb-0">
             <ChiRho className="h-6 w-6 mr-2" />
-            <span className="font-semibold">Ex314.ai</span>
+            <span className="text-gray-700">© 2024 Ex314.ai - All rights reserved</span>
           </div>
           
-          <div className="flex gap-4">
-            <Link href="/about" className="text-sm text-gray-600 hover:text-gray-900">
-              About
+          <div className="flex gap-6">
+            <Link href="/privacy" className="text-gray-600 hover:text-gray-900">
+              Privacy
             </Link>
-            <Link href="/contact" className="text-sm text-gray-600 hover:text-gray-900">
+            <Link href="/terms" className="text-gray-600 hover:text-gray-900">
+              Terms
+            </Link>
+            <Link href="/contact" className="text-gray-600 hover:text-gray-900">
               Contact
             </Link>
           </div>
         </div>
       </footer>
     </main>
-  )
-} 
+  );
+}

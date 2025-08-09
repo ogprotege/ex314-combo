@@ -8500,7 +8500,9 @@ export async function getSaintOfTheDay(date?: Date): Promise<Saint | null> {
         citation: "See today's liturgy",
         text: "Refer to today's liturgical readings for this feast."
       }],
-      liturgicalColor: (liturgicalFeast.color?.charAt(0).toUpperCase() + liturgicalFeast.color?.slice(1)) as 'Red' | 'White' | 'Green' | 'Purple' | 'Rose' || 'White'
+      liturgicalColor: liturgicalFeast.color 
+        ? (liturgicalFeast.color.charAt(0).toUpperCase() + liturgicalFeast.color.slice(1)) as 'Red' | 'White' | 'Green' | 'Purple' | 'Rose'
+        : 'White'
     };
   }
   
