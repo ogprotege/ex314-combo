@@ -14,7 +14,7 @@ export default function ChatAnalyticsDashboard() {
   useEffect(() => {
     async function fetchChatAnalytics() {
       setLoading(true)
-      // TODO: Google Cloud SQL stub
+      // Placeholder - to be implemented with PostgreSQL
       setChatStats({ summary: [], totalChats: 0, totalMessages: 0, uniqueUsers: 0 })
       setLoading(false)
     }

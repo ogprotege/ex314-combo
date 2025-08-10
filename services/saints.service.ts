@@ -15,17 +15,23 @@ import {
   type Saint
 } from '@/lib/database/saints-repository';
 import { withCache } from '@/lib/database/cache-middleware';
+import { NotFoundError, DatabaseError, ValidationError } from '@/lib/errors/AppError';
 
 export class SaintsService {
   /**
    * Get a single saint by ID
    */
   async getSaint(id: string): Promise<Saint | null> {
+    if (!id || typeof id !== 'string') {
+      throw new ValidationError('Invalid saint ID provided');
+    }
+    
     try {
-      return await getSaintById(id);
+      const saint = await getSaintById(id);
+      return saint;
     } catch (error) {
       console.error(`Error fetching saint ${id}:`, error);
-      throw new Error('Failed to fetch saint');
+      throw new DatabaseError(`Failed to fetch saint with ID: ${id}`);
     }
   }
 
@@ -33,11 +39,16 @@ export class SaintsService {
    * Get a saint by slug
    */
   async getSaintBySlug(slug: string): Promise<Saint | null> {
+    if (!slug || typeof slug !== 'string') {
+      throw new ValidationError('Invalid saint slug provided');
+    }
+    
     try {
-      return await getSaintBySlug(slug);
+      const saint = await getSaintBySlug(slug);
+      return saint;
     } catch (error) {
       console.error(`Error fetching saint by slug ${slug}:`, error);
-      throw new Error('Failed to fetch saint');
+      throw new DatabaseError(`Failed to fetch saint with slug: ${slug}`);
     }
   }
 
@@ -45,30 +56,53 @@ export class SaintsService {
    * Get saint with all related data
    */
   async getSaintWithRelations(id: string) {
+    if (!id || typeof id !== 'string') {
+      throw new ValidationError('Invalid saint ID provided');
+    }
+    
     try {
-      return await getSaintWithRelatedData(id);
+      const saintData = await getSaintWithRelatedData(id);
+      if (!saintData) {
+        throw new NotFoundError('Saint');
+      }
+      return saintData;
     } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
       console.error(`Error fetching saint relations for ${id}:`, error);
-      throw new Error('Failed to fetch saint with relations');
+      throw new DatabaseError(`Failed to fetch saint with relations for ID: ${id}`);
     }
   }
 
   /**
    * Search saints with various filters
    */
-  async searchSaints(params: SearchSaintsParams) {
+  async searchSaints(params: SearchSaintsParams & { page?: number }) {
     try {
+      // Validate pagination parameters
+      if (params.limit && (params.limit < 1 || params.limit > 100)) {
+        throw new ValidationError('Limit must be between 1 and 100');
+      }
+      
+      if (params.page && params.page < 1) {
+        throw new ValidationError('Page must be greater than 0');
+      }
+      
       // Apply default pagination if not provided
       const searchParams = {
         limit: 20,
-        page: 1,
+        offset: params.offset || ((params.page || 1) - 1) * (params.limit || 20),
         ...params
       };
 
       return await searchSaints(searchParams);
     } catch (error) {
+      if (error instanceof ValidationError) {
+        throw error;
+      }
       console.error('Error searching saints:', error);
-      throw new Error('Failed to search saints');
+      throw new DatabaseError('Failed to search saints');
     }
   }
 
@@ -76,11 +110,19 @@ export class SaintsService {
    * Get saints for a specific day
    */
   async getSaintsByDay(month: number, day: number) {
+    if (month < 1 || month > 12) {
+      throw new ValidationError('Month must be between 1 and 12');
+    }
+    
+    if (day < 1 || day > 31) {
+      throw new ValidationError('Day must be between 1 and 31');
+    }
+    
     try {
       return await getSaintsByDay(month, day);
     } catch (error) {
       console.error(`Error fetching saints for ${month}/${day}:`, error);
-      throw new Error('Failed to fetch saints by day');
+      throw new DatabaseError(`Failed to fetch saints for ${month}/${day}`);
     }
   }
 
@@ -88,11 +130,15 @@ export class SaintsService {
    * Get popular saints
    */
   async getPopularSaints(limit: number = 10) {
+    if (limit < 1 || limit > 100) {
+      throw new ValidationError('Limit must be between 1 and 100');
+    }
+    
     try {
       return await getPopularSaints(limit);
     } catch (error) {
       console.error('Error fetching popular saints:', error);
-      throw new Error('Failed to fetch popular saints');
+      throw new DatabaseError('Failed to fetch popular saints');
     }
   }
 
@@ -100,11 +146,15 @@ export class SaintsService {
    * Get saints by month
    */
   async getSaintsByMonth(month: number) {
+    if (month < 1 || month > 12) {
+      throw new ValidationError('Month must be between 1 and 12');
+    }
+    
     try {
       return await getSaintsByMonth(month);
     } catch (error) {
       console.error(`Error fetching saints for month ${month}:`, error);
-      throw new Error('Failed to fetch saints by month');
+      throw new DatabaseError(`Failed to fetch saints for month ${month}`);
     }
   }
 
@@ -120,7 +170,7 @@ export class SaintsService {
       return await this.getSaintsByDay(month, day);
     } catch (error) {
       console.error('Error fetching today\'s saints:', error);
-      throw new Error('Failed to fetch today\'s saints');
+      throw new DatabaseError('Failed to fetch today\'s saints');
     }
   }
 }

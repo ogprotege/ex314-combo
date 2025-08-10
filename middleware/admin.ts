@@ -1,33 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from 'next/headers';
-import { getApp, getApps, initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, getIdTokenResult } from 'firebase/auth';
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'placeholder-api-key',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'placeholder-auth-domain',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'placeholder-project-id',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'placeholder-storage-bucket',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || 'placeholder-messaging-id',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || 'placeholder-app-id',
-};
+import { verifyIdToken, checkAdminClaim } from '@/lib/firebase-admin';
 
 /**
  * Middleware to check if a user has admin privileges
- * This can be used to protect admin routes
+ * Verifies Firebase ID token and checks admin custom claims
  */
-export async function isAdmin(req: NextRequest) {
-  // Skip auth check during build time
-  if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
+export async function isAdmin(req: NextRequest): Promise<boolean> {
+  try {
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return false;
+    }
+
+    // Extract the token
+    const token = authHeader.replace('Bearer ', '');
+    if (!token) {
+      return false;
+    }
+
+    // Verify the token
+    const decodedToken = await verifyIdToken(token);
+    if (!decodedToken) {
+      return false;
+    }
+
+    // Check if user has admin claim
+    const isAdminUser = await checkAdminClaim(decodedToken.uid);
+    return isAdminUser;
+  } catch (error) {
+    console.error('Error checking admin status:', error);
     return false;
   }
-  
-  // In a real implementation, this would verify a Firebase token
-  // For now, check a special header or query param for testing
-  const isLocalAdmin = req.headers.get("x-is-admin") === "true" ||
-                     req.nextUrl.searchParams.get("admin") === "true";
-                     
-  return isLocalAdmin;
 }
 
 /**
@@ -35,14 +39,17 @@ export async function isAdmin(req: NextRequest) {
  * Redirects to /unauthorized if user is not an admin
  */
 export async function adminMiddleware(req: NextRequest) {
-  // Skip admin check during build time
-  if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
-    return NextResponse.next();
-  }
-  
   const isAdminUser = await isAdmin(req);
   
   if (!isAdminUser) {
+    // For API routes, return 401 Unauthorized
+    if (req.nextUrl.pathname.startsWith('/api/')) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    // For pages, redirect to unauthorized page
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
   

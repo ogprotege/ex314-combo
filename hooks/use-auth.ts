@@ -4,11 +4,6 @@ import { useContext } from "react"
 import { AuthContext } from "@/context/AuthContext"
 
 export const useAuth = () => {
-  // Add build-time check to skip auth
-  if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
-    return { isAuthenticated: false, isLoading: false };
-  }
-
   try {
     const context = useContext(AuthContext)
     if (context === undefined) {

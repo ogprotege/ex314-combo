@@ -1,5 +1,4 @@
-import { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { saintsService } from "@/services/saints.service";
 import { checkRateLimit } from "@/lib/database/cache-middleware";
 import { z } from "zod";
@@ -88,8 +87,8 @@ export async function GET(req: NextRequest) {
     // Handle single saint request by ID
     if (params.id) {
       const saint = params.full === 'true' 
-        ? await getSaintWithRelatedData(params.id)
-        : await getSaintById(params.id);
+        ? await saintsService.getSaintWithRelations(params.id)
+        : await saintsService.getSaint(params.id);
         
       if (!saint) {
         return NextResponse.json(
@@ -112,8 +111,8 @@ export async function GET(req: NextRequest) {
     // Handle single saint request by slug
     if (params.slug) {
       const saint = params.full === 'true'
-        ? await getSaintWithRelatedData(params.slug)
-        : await getSaintBySlug(params.slug);
+        ? await saintsService.getSaintWithRelations(params.slug)
+        : await saintsService.getSaintBySlug(params.slug);
         
       if (!saint) {
         return NextResponse.json(
@@ -149,7 +148,7 @@ export async function GET(req: NextRequest) {
       const month = targetDate.getMonth() + 1;
       const day = targetDate.getDate();
       
-      const saints = await getSaintsByDay(month, day);
+      const saints = await saintsService.getSaintsByDay(month, day);
       
       if (saints.length === 0) {
         return NextResponse.json({
@@ -176,7 +175,7 @@ export async function GET(req: NextRequest) {
     
     // Handle popular saints request
     if (params.popular === 'true') {
-      const popularSaints = await getPopularSaints(params.limit);
+      const popularSaints = await saintsService.getPopularSaints(params.limit);
       const responseTime = endTimer(timer);
       
       return NextResponse.json(popularSaints, {
@@ -191,7 +190,7 @@ export async function GET(req: NextRequest) {
     // Handle search/list request with pagination
     const offset = (params.page - 1) * params.limit;
     
-    const searchResult = await searchSaints({
+    const searchResult = await saintsService.searchSaints({
       query: params.query,
       type: params.type,
       month: params.month,
@@ -214,7 +213,15 @@ export async function GET(req: NextRequest) {
       return url.toString();
     };
     
-    const links: any = {
+    interface PaginationLinks {
+      self: string;
+      first?: string;
+      prev?: string;
+      next?: string;
+      last?: string;
+    }
+    
+    const links: PaginationLinks = {
       self: buildPageUrl(params.page),
     };
     

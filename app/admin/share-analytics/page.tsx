@@ -1,10 +1,25 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, lazy, Suspense } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-// TODO: Google Cloud SQL stub functions
+import { Download } from "lucide-react"
+import dynamic from 'next/dynamic'
+
+// Dynamic imports for heavy chart components
+const BarChart = dynamic(() => import('recharts').then(mod => mod.BarChart), { ssr: false })
+const Bar = dynamic(() => import('recharts').then(mod => mod.Bar), { ssr: false })
+const XAxis = dynamic(() => import('recharts').then(mod => mod.XAxis), { ssr: false })
+const YAxis = dynamic(() => import('recharts').then(mod => mod.YAxis), { ssr: false })
+const CartesianGrid = dynamic(() => import('recharts').then(mod => mod.CartesianGrid), { ssr: false })
+const Tooltip = dynamic(() => import('recharts').then(mod => mod.Tooltip), { ssr: false })
+const ResponsiveContainer = dynamic(() => import('recharts').then(mod => mod.ResponsiveContainer), { ssr: false })
+const PieChart = dynamic(() => import('recharts').then(mod => mod.PieChart), { ssr: false })
+const Pie = dynamic(() => import('recharts').then(mod => mod.Pie), { ssr: false })
+const Cell = dynamic(() => import('recharts').then(mod => mod.Cell), { ssr: false })
+
+// Analytics types
 type AnalyticsResult = {
   success: true;
   data: { byPlatform: any[]; total: number; dailyTrend: any[]; conversationData: any[] };
@@ -21,6 +36,7 @@ type ExportResult = {
   error: string;
 };
 
+// Placeholder functions - to be implemented with PostgreSQL
 const getShareAnalytics = async (timeframe?: string, includeConversationData?: boolean): Promise<AnalyticsResult> => ({ 
   success: true, 
   data: { byPlatform: [], total: 0, dailyTrend: [], conversationData: [] } 
@@ -29,8 +45,6 @@ const exportShareAnalyticsForTraining = async (startDate?: string, endDate?: str
   success: true,
   data: []
 });
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
-import { Download } from "lucide-react"
 
 export default function ShareAnalyticsDashboard() {
   const [loading, setLoading] = useState(true)

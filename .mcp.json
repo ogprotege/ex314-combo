@@ -13,7 +13,7 @@
       "command": "node",
       "args": ["path/to/server-github"],
       "env": {
-        "GITHUB_TOKEN": "..."
+        "GITHUB_TOKEN": "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"
       }
     },
     "puppeteer": {
@@ -22,15 +22,6 @@
       "command": "node",
       "args": ["path/to/server-puppeteer"],
       "env": {}
-    },
-    "slack": {
-      "name": "Slack MCP",
-      "description": "Access to real-time Slack conversations and workflows",
-      "command": "node",
-      "args": ["path/to/server-slack"],
-      "env": {
-        "SLACK_TOKEN": "..."
-      }
     },
     "filesystem": {
       "name": "File System MCP",
@@ -50,13 +41,6 @@
       "name": "Sequential Thinking MCP",
       "description": "Helps LLMs decompose complex tasks into logical steps",
       "command": "code-reasoning",
-      "args": [],
-      "env": {}
-    },
-    "brave-search": {
-      "name": "Brave Search MCP",
-      "description": "Privacy-focused web search tool",
-      "command": "server-brave-search",
       "args": [],
       "env": {}
     },

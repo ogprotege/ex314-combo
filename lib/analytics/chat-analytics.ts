@@ -47,7 +47,7 @@ export function trackChatView(chatId: string, chatTitle: string) {
  * @param featureName The name of the feature (e.g., "search", "filter", "share")
  * @param details Additional details about the feature usage
  */
-export function trackChatFeature(featureName: string, details: any = {}) {
+export function trackChatFeature(featureName: string, details: Record<string, unknown> = {}) {
   trackEvent({
     event_type: `chat_feature_${featureName}`,
     ...details,
@@ -71,7 +71,7 @@ export function trackMessageSearch(chatId: string, searchTerm: string, resultsCo
   })
 }
 
-export function trackMessageFilter(chatId: string, filterType: string, filterValue: any) {
+export function trackMessageFilter(chatId: string, filterType: string, filterValue: string | number | boolean) {
   if (typeof window === "undefined") return
 
   try {

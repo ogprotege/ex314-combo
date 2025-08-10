@@ -42,7 +42,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Skip auth check during build time or when no Firebase key is provided
     if (
-      process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true' ||
       !process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
       process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'placeholder-api-key'
     ) {
@@ -98,7 +97,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = () => {
     if (
-      process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true' ||
       !process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
       process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'placeholder-api-key'
     ) {
@@ -116,7 +114,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     if (
-      process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true' ||
       !process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
       process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'placeholder-api-key'
     ) {

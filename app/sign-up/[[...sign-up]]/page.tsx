@@ -22,7 +22,6 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const skipAuth =
-    process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true' ||
     !process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
     process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'placeholder-api-key'
 

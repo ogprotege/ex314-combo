@@ -1,9 +1,17 @@
 "use client"
 
 import * as React from "react"
-import * as RechartsPrimitive from "recharts"
-
+import dynamic from 'next/dynamic'
 import { cn } from "@/lib/utils"
+
+// Lazy load recharts for better performance
+const RechartsPrimitive = dynamic(
+  () => import('recharts'),
+  { 
+    ssr: false,
+    loading: () => <div className="flex items-center justify-center p-4">Loading chart...</div>
+  }
+) as any
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const

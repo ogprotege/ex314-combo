@@ -3,10 +3,32 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-fallback-auth"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 export default function EnvironmentDiagnosticsPage() {
-  // Call useAuth to ensure it works in this component
-  useAuth();
+  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect non-admin users
+    if (!isLoading && (!isAuthenticated || !isAdmin)) {
+      router.push('/unauthorized');
+    }
+  }, [isAuthenticated, isAdmin, isLoading, router]);
+
+  // Don't render sensitive content for non-admin users
+  if (isLoading || !isAuthenticated || !isAdmin) {
+    return (
+      <div className="container mx-auto py-10 max-w-4xl">
+        <Card>
+          <CardContent className="p-8">
+            <p className="text-center text-gray-600">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   
   // Firebase Auth Environment Variables
   const firebaseVariables = [

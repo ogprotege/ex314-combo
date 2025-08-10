@@ -57,15 +57,12 @@ const isPublicRoute = (pathname: string): boolean => {
 
 // Define admin routes
 const isAdminRoute = (pathname: string): boolean => {
-  return pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
+  return pathname.startsWith('/admin') || 
+         pathname.startsWith('/api/admin') ||
+         pathname.startsWith('/diagnostics');
 }
 
 export default async function middleware(req: NextRequest) {
-  // Skip auth check during build time
-  if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') {
-    return NextResponse.next();
-  }
-
   // Apply security headers to all responses
   const response = NextResponse.next()
   const secureResponse = addSecurityHeaders(req, response)

@@ -1,12 +1,12 @@
 import { Pool, PoolConfig, QueryResult, QueryResultRow } from 'pg';
 import Redis from 'ioredis';
+import { logger } from '@/lib/utils/logger';
 
-// Debug: Log environment variable availability at module load time
-console.log('🔍 Database Connection Module Loading...');
-console.log('📊 Environment check at module load:');
-// Security: Removed credential logging
-console.log(`  POSTGRES_URL available: ${!!process.env.POSTGRES_URL}`);
-console.log(`  REDIS_URL available: ${!!process.env.REDIS_URL}`);
+// Initialize database connections
+logger.debug('Database Connection Module Loading', {
+  postgres: !!process.env.POSTGRES_URL,
+  redis: !!process.env.REDIS_URL
+});
 
 // Function to parse Redis URL into individual components
 function parseRedisUrl(url?: string): {
@@ -74,7 +74,7 @@ let pool: Pool | null = null;
 
 export function getPool(): Pool {
   if (!pool) {
-    console.log('🏗️ Creating new PostgreSQL connection pool...');
+    logger.debug('Creating new PostgreSQL connection pool');
     
     // Get configuration dynamically to ensure environment variables are available
     const poolConfig = getDatabaseConfig();
@@ -83,29 +83,38 @@ export function getPool(): Pool {
     
     // Enhanced error handling and logging for the pool
     pool.on('error', (err) => {
-      console.error('❌ Unexpected error on idle PostgreSQL client:', err);
+      logger.error('Unexpected error on idle PostgreSQL client', err);
     });
 
     pool.on('connect', (client) => {
-      console.log('✅ New PostgreSQL client connected to pool');
+      logger.debug('New PostgreSQL client connected to pool');
       
-      // Log the actual database connection details
-      client.query('SELECT current_database(), current_user', (err, result) => {
-        if (!err && result.rows[0]) {
-          console.log(`📊 Connected to database: ${result.rows[0].current_database} as user: ${result.rows[0].current_user}`);
-        }
-      });
+      // Log the actual database connection details in development only
+      if (process.env.NODE_ENV !== 'production') {
+        client.query('SELECT current_database(), current_user', (err, result) => {
+          if (!err && result.rows[0]) {
+            logger.debug('Database connection established', {
+              database: result.rows[0].current_database,
+              user: result.rows[0].current_user
+            });
+          }
+        });
+      }
     });
 
     pool.on('acquire', () => {
       const totalCount = pool!.totalCount;
       const idleCount = pool!.idleCount;
       const waitingCount = pool!.waitingCount;
-      console.log(`📈 Pool stats - Total: ${totalCount}, Idle: ${idleCount}, Waiting: ${waitingCount}`);
+      logger.verbose('Pool stats', {
+        total: totalCount,
+        idle: idleCount,
+        waiting: waitingCount
+      });
     });
     
     pool.on('remove', () => {
-      console.log('➖ Client removed from PostgreSQL pool');
+      logger.verbose('Client removed from PostgreSQL pool');
     });
   }
   
@@ -117,11 +126,11 @@ function getRedisConfig() {
   const redisUrl = process.env.REDIS_URL;
   const redisConfig = parseRedisUrl(redisUrl);
   
-  console.log('🔴 Redis configuration:');
-  console.log(`  Host: ${redisConfig.host}`);
-  console.log(`  Port: ${redisConfig.port}`);
-  console.log(`  Database: ${redisConfig.db}`);
-  // Security: Removed password logging
+  logger.debug('Redis configuration', {
+    host: redisConfig.host,
+    port: redisConfig.port,
+    database: redisConfig.db
+  });
   
   return {
     host: redisConfig.host,
@@ -130,7 +139,7 @@ function getRedisConfig() {
     db: redisConfig.db,
     retryStrategy: (times: number) => {
       const delay = Math.min(times * 50, 2000);
-      console.log(`🔄 Redis retry attempt ${times}, delay: ${delay}ms`);
+      logger.debug(`Redis retry attempt ${times}`, { delay: `${delay}ms` });
       return delay;
     },
     maxRetriesPerRequest: 3,
@@ -139,52 +148,138 @@ function getRedisConfig() {
   };
 }
 
-// Redis client instances with enhanced logging
+// Redis client instances with enhanced logging and connection pooling
 let redisClient: Redis | null = null;
 let redisSubscriber: Redis | null = null;
+let redisPool: Redis[] = [];
+const REDIS_POOL_SIZE = 5;
+
+// Redis connection pool implementation
+class RedisConnectionPool {
+  private pool: Redis[] = [];
+  private activeConnections = 0;
+  private maxConnections: number;
+  
+  constructor(maxConnections: number = 5) {
+    this.maxConnections = maxConnections;
+  }
+  
+  async getConnection(): Promise<Redis> {
+    // Return existing connection if available
+    if (this.pool.length > 0) {
+      const connection = this.pool.pop()!;
+      if (connection.status === 'ready') {
+        this.activeConnections++;
+        return connection;
+      }
+      // Connection is not ready, create a new one
+      connection.disconnect();
+    }
+    
+    // Create new connection if under limit
+    if (this.activeConnections < this.maxConnections) {
+      const config = getRedisConfig();
+      const connection = new Redis({
+        ...config,
+        enableOfflineQueue: false,
+        connectTimeout: 5000,
+      });
+      
+      await new Promise<void>((resolve, reject) => {
+        connection.once('ready', () => {
+          this.activeConnections++;
+          resolve();
+        });
+        connection.once('error', reject);
+      });
+      
+      return connection;
+    }
+    
+    // Wait for a connection to be available
+    return new Promise((resolve) => {
+      const checkInterval = setInterval(() => {
+        if (this.pool.length > 0) {
+          clearInterval(checkInterval);
+          resolve(this.getConnection());
+        }
+      }, 100);
+    });
+  }
+  
+  releaseConnection(connection: Redis): void {
+    if (connection.status === 'ready') {
+      this.pool.push(connection);
+    } else {
+      connection.disconnect();
+    }
+    this.activeConnections--;
+  }
+  
+  async closeAll(): Promise<void> {
+    const closePromises = this.pool.map(conn => conn.quit());
+    await Promise.all(closePromises);
+    this.pool = [];
+    this.activeConnections = 0;
+  }
+}
+
+const redisConnectionPool = new RedisConnectionPool(REDIS_POOL_SIZE);
 
 export function getRedisClient(): Redis {
   if (!redisClient) {
-    console.log('🔴 Creating new Redis client...');
+    logger.debug('Creating new Redis client...');
     const config = getRedisConfig();
-    redisClient = new Redis(config);
+    redisClient = new Redis({
+      ...config,
+      enableOfflineQueue: true,
+      maxRetriesPerRequest: 3,
+      retryStrategy: (times: number) => {
+        const delay = Math.min(times * 50, 2000);
+        logger.debug(`Redis retry attempt ${times}, delay: ${delay}ms`);
+        return delay;
+      },
+    });
     
     redisClient.on('connect', () => {
-      console.log('✅ Redis client connected successfully');
+      logger.info('Redis client connected successfully');
     });
     
     redisClient.on('error', (err) => {
-      console.error('❌ Redis client error:', err);
+      logger.error('Redis client error', err);
     });
     
     redisClient.on('ready', () => {
-      console.log('🚀 Redis client ready for operations');
+      logger.info('Redis client ready for operations');
     });
     
     redisClient.on('close', () => {
-      console.log('🔴 Redis client connection closed');
+      logger.debug('Redis client connection closed');
     });
   }
   
   return redisClient;
 }
 
+// Export the connection pool for advanced usage
+export { redisConnectionPool };
+
 export function getRedisSubscriber(): Redis {
   if (!redisSubscriber) {
-    console.log('📡 Creating new Redis subscriber client...');
+    logger.debug('Creating new Redis subscriber client');
     const config = getRedisConfig();
     redisSubscriber = new Redis(config);
     
     redisSubscriber.on('connect', () => {
-      console.log('✅ Redis subscriber connected successfully');
+      logger.info('Redis subscriber connected successfully');
     });
     
     redisSubscriber.on('error', (err) => {
-      console.error('❌ Redis subscriber error:', err);
+      logger.error('Redis subscriber error', err);
     });
     
     redisSubscriber.on('ready', () => {
-      console.log('📡 Redis subscriber ready for operations');
+      logger.info('Redis subscriber ready for operations');
     });
   }
   
@@ -203,21 +298,14 @@ export async function query<T extends QueryResultRow = any>(
     const result = await pool.query<T>(text, params);
     const duration = Date.now() - start;
     
-    // Log query performance for monitoring
-    if (process.env.NODE_ENV !== 'production') {
-      if (duration > 100) {
-        console.warn(`⚠️ Slow query detected (${duration}ms):`, text.substring(0, 100) + '...');
-      } else if (duration > 50) {
-        console.log(`📊 Query completed in ${duration}ms:`, text.substring(0, 50) + '...');
-      }
-    }
+    // Log query performance
+    logger.query(text, params, duration);
     
     return result;
   } catch (error) {
-    console.error('❌ Database query failed:');
-    console.error(`   Query: ${text.substring(0, 100)}...`);
-    console.error(`   Parameters: ${JSON.stringify(params)}`);
-    console.error(`   Error: ${(error as Error).message}`);
+    logger.error('Database query failed', error, {
+      query: text.substring(0, 100)
+    });
     throw error;
   }
 }
@@ -229,26 +317,26 @@ export async function withTransaction<T>(
   const pool = getPool();
   const client = await pool.connect();
   
-  console.log('🔄 Starting database transaction...');
+  logger.debug('Starting database transaction');
   
   try {
     await client.query('BEGIN');
-    console.log('✅ Transaction started successfully');
+    logger.debug('Transaction started successfully');
     
     const result = await callback(client);
     
     await client.query('COMMIT');
-    console.log('✅ Transaction committed successfully');
+    logger.debug('Transaction committed successfully');
     
     return result;
   } catch (error) {
-    console.error('❌ Transaction failed, rolling back...');
+    logger.error('Transaction failed, rolling back', error);
     await client.query('ROLLBACK');
-    console.log('🔄 Transaction rolled back successfully');
+    logger.debug('Transaction rolled back successfully');
     throw error;
   } finally {
     client.release();
-    console.log('🔓 Transaction client released back to pool');
+    logger.debug('Transaction client released back to pool');
   }
 }
 
@@ -261,15 +349,15 @@ export async function getCached<T>(key: string): Promise<T | null> {
     const cached = await redis.get(key);
     
     if (cached) {
-      console.log(`🎯 Cache hit for key: ${key}`);
+      logger.verbose(`Cache hit for key: ${key}`);
       return JSON.parse(cached);
     } else {
-      console.log(`🔍 Cache miss for key: ${key}`);
+      logger.verbose(`Cache miss for key: ${key}`);
     }
     
     return null;
   } catch (error) {
-    console.error(`❌ Redis get error for key ${key}:`, error);
+    logger.error(`Redis get error for key ${key}`, error);
     return null;
   }
 }
@@ -284,9 +372,9 @@ export async function setCached(
   try {
     await redis.connect();
     await redis.setex(key, ttl, JSON.stringify(value));
-    console.log(`💾 Cached key: ${key} (TTL: ${ttl}s)`);
+    logger.verbose(`Cached key: ${key}`, { ttl: `${ttl}s` });
   } catch (error) {
-    console.error(`❌ Redis set error for key ${key}:`, error);
+    logger.error(`Redis set error for key ${key}`, error);
   }
 }
 
@@ -299,12 +387,12 @@ export async function invalidateCache(pattern: string): Promise<void> {
     
     if (keys.length > 0) {
       await redis.del(...keys);
-      console.log(`🗑️ Invalidated ${keys.length} cache keys matching pattern: ${pattern}`);
+      logger.info(`Invalidated ${keys.length} cache keys matching pattern: ${pattern}`);
     } else {
-      console.log(`🔍 No cache keys found matching pattern: ${pattern}`);
+      logger.debug(`No cache keys found matching pattern: ${pattern}`);
     }
   } catch (error) {
-    console.error(`❌ Redis invalidate error for pattern ${pattern}:`, error);
+    logger.error(`Redis invalidate error for pattern ${pattern}`, error);
   }
 }
 
@@ -318,7 +406,7 @@ export async function checkDatabaseHealth(): Promise<{
   let postgresHealthy = false;
   let redisHealthy = false;
   
-  console.log('🏥 Running database health check...');
+  logger.debug('Running database health check');
   
   // Check PostgreSQL connection and gather detailed information
   try {
@@ -339,14 +427,14 @@ export async function checkDatabaseHealth(): Promise<{
       },
     };
     
-    console.log('✅ PostgreSQL health check passed');
+    logger.info('PostgreSQL health check passed');
   } catch (error) {
     details.postgres = {
       status: 'unhealthy',
       error: (error as Error).message,
       code: (error as any).code,
     };
-    console.error('❌ PostgreSQL health check failed:', error);
+    logger.error('PostgreSQL health check failed', error);
   }
   
   // Check Redis connection and gather information
@@ -364,13 +452,13 @@ export async function checkDatabaseHealth(): Promise<{
       serverInfo: info.split('\r\n').slice(0, 5).join('; '), // First few lines of server info
     };
     
-    console.log('✅ Redis health check passed');
+    logger.info('Redis health check passed');
   } catch (error) {
     details.redis = {
       status: 'unhealthy',
       error: (error as Error).message,
     };
-    console.error('❌ Redis health check failed:', error);
+    logger.error('Redis health check failed', error);
   }
   
   return {
@@ -382,7 +470,7 @@ export async function checkDatabaseHealth(): Promise<{
 
 // Enhanced cleanup function with comprehensive connection termination
 export async function closeDatabaseConnections(): Promise<void> {
-  console.log('🔐 Initiating graceful database connection shutdown...');
+  logger.info('Initiating graceful database connection shutdown');
   
   const shutdownPromises: Promise<void>[] = [];
   
@@ -390,20 +478,29 @@ export async function closeDatabaseConnections(): Promise<void> {
   if (pool) {
     shutdownPromises.push(
       pool.end().then(() => {
-        console.log('✅ PostgreSQL pool closed successfully');
+        logger.info('PostgreSQL pool closed successfully');
         pool = null;
       }).catch(error => {
-        console.error('❌ Error closing PostgreSQL pool:', error);
+        logger.error('Error closing PostgreSQL pool', error);
       })
     );
   }
+  
+  // Close Redis connection pool
+  shutdownPromises.push(
+    redisConnectionPool.closeAll().then(() => {
+      logger.info('Redis connection pool closed successfully');
+    }).catch(error => {
+      logger.error('Error closing Redis connection pool', error);
+    })
+  );
   
   // Close Redis client
   if (redisClient) {
     shutdownPromises.push(
       new Promise<void>((resolve) => {
         redisClient!.disconnect();
-        console.log('✅ Redis client disconnected successfully');
+        logger.info('Redis client disconnected successfully');
         redisClient = null;
         resolve();
       })
@@ -415,7 +512,7 @@ export async function closeDatabaseConnections(): Promise<void> {
     shutdownPromises.push(
       new Promise<void>((resolve) => {
         redisSubscriber!.disconnect();
-        console.log('✅ Redis subscriber disconnected successfully');
+        logger.info('Redis subscriber disconnected successfully');
         redisSubscriber = null;
         resolve();
       })
@@ -425,24 +522,24 @@ export async function closeDatabaseConnections(): Promise<void> {
   // Wait for all connections to close
   try {
     await Promise.all(shutdownPromises);
-    console.log('🔐 All database connections closed successfully');
+    logger.info('All database connections closed successfully');
   } catch (error) {
-    console.error('❌ Error during connection shutdown:', error);
+    logger.error('Error during connection shutdown', error);
   }
 }
 
 // Enhanced graceful shutdown handling with better logging
 process.on('SIGINT', async () => {
-  console.log('🛑 SIGINT received, initiating graceful shutdown...');
+  logger.info('SIGINT received, initiating graceful shutdown');
   await closeDatabaseConnections();
-  console.log('👋 Graceful shutdown completed');
+  logger.info('Graceful shutdown completed');
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.log('🛑 SIGTERM received, initiating graceful shutdown...');
+  logger.info('SIGTERM received, initiating graceful shutdown');
   await closeDatabaseConnections();
-  console.log('👋 Graceful shutdown completed');
+  logger.info('Graceful shutdown completed');
   process.exit(0);
 });
 

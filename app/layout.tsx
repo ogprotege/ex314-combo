@@ -14,6 +14,7 @@ import { AuthProvider } from "@/context/AuthContext"
 import { ChatProvider } from "@/context/ChatContext"
 import { ChiRho } from "@/components/chi-rho"
 import { AdminLink } from "@/components/admin/AdminLink"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -59,43 +60,45 @@ export default function RootLayout({
 
             <ThemeProvider defaultTheme="light" storageKey="ex314-theme">
               <LiturgicalThemeProvider>
-                <Suspense fallback={<div>Loading...</div>}>
-                  <header className="border-b bg-background sticky top-0 z-50">
-                    <div className="container flex h-24 items-center justify-between px-4">
-                      <div className="flex items-center gap-6">
-                        <Link href="/" className="flex flex-col items-center text-center">
-                          <ChiRho className="h-12 w-12 mb-1" />
-                          <span className="text-3xl font-bold tracking-tight">Ex314.ai</span>
-                        </Link>
-                        <nav className="hidden md:flex items-center gap-6 text-sm ml-6">
-                          <Link href="/prayers" className="transition-colors hover:text-primary">
-                            Prayers
+                <ErrorBoundary>
+                  <Suspense fallback={<div>Loading...</div>}>
+                    <header className="border-b bg-background sticky top-0 z-50">
+                      <div className="container flex h-24 items-center justify-between px-4">
+                        <div className="flex items-center gap-6">
+                          <Link href="/" className="flex flex-col items-center text-center">
+                            <ChiRho className="h-12 w-12 mb-1" />
+                            <span className="text-3xl font-bold tracking-tight">Ex314.ai</span>
                           </Link>
-                          <Link href="/calendar" className="transition-colors hover:text-primary">
-                            Calendar
-                          </Link>
-                          <Link href="/rosary" className="transition-colors hover:text-primary">
-                            Rosary
-                          </Link>
-                          <Link href="/about" className="transition-colors hover:text-primary">
-                            About
-                          </Link>
-                          <Link href="/dashboard" className="transition-colors hover:text-primary">
-                            Dashboard
-                          </Link>
-                          <Link href="/chat" className="transition-colors hover:text-primary font-semibold">
-                            Chat
-                          </Link>
-                          <AdminLink />
-                        </nav>
+                          <nav className="hidden md:flex items-center gap-6 text-sm ml-6">
+                            <Link href="/prayers" className="transition-colors hover:text-primary">
+                              Prayers
+                            </Link>
+                            <Link href="/calendar" className="transition-colors hover:text-primary">
+                              Calendar
+                            </Link>
+                            <Link href="/rosary" className="transition-colors hover:text-primary">
+                              Rosary
+                            </Link>
+                            <Link href="/about" className="transition-colors hover:text-primary">
+                              About
+                            </Link>
+                            <Link href="/dashboard" className="transition-colors hover:text-primary">
+                              Dashboard
+                            </Link>
+                            <Link href="/chat" className="transition-colors hover:text-primary font-semibold">
+                              Chat
+                            </Link>
+                            <AdminLink />
+                          </nav>
+                        </div>
+                        <AuthButtons />
                       </div>
-                      <AuthButtons />
-                    </div>
-                  </header>
-                  {children}
-                  <PrivateAnalytics />
-                  <Toaster />
-                </Suspense>
+                    </header>
+                    {children}
+                    <PrivateAnalytics />
+                    <Toaster />
+                  </Suspense>
+                </ErrorBoundary>
               </LiturgicalThemeProvider>
             </ThemeProvider>
           </body>

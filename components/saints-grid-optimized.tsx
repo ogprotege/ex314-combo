@@ -5,7 +5,6 @@ import { FixedSizeGrid as Grid } from 'react-window';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
 import Image from 'next/image';
-import { debounce } from 'lodash';
 
 interface Saint {
   id: string;
@@ -133,6 +132,18 @@ export function SaintsGridOptimized({
     rowHeight: 320,
   });
 
+  // Debounce utility function
+  const debounce = <T extends (...args: any[]) => any>(
+    func: T,
+    delay: number
+  ): ((...args: Parameters<T>) => void) => {
+    let timeoutId: NodeJS.Timeout;
+    return (...args: Parameters<T>) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func(...args), delay);
+    };
+  };
+
   // Update grid dimensions on resize
   useEffect(() => {
     const updateDimensions = () => {
@@ -148,12 +159,20 @@ export function SaintsGridOptimized({
         rowHeight: 320,
       });
     };
-
-    updateDimensions();
-    const debouncedUpdate = debounce(updateDimensions, 250);
-    window.addEventListener('resize', debouncedUpdate);
     
-    return () => window.removeEventListener('resize', debouncedUpdate);
+    // Debounce the resize handler
+    const debouncedUpdateDimensions = debounce(updateDimensions, 150);
+
+    // Initial dimensions
+    updateDimensions();
+    
+    // Add resize listener
+    window.addEventListener('resize', debouncedUpdateDimensions);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', debouncedUpdateDimensions);
+    };
   }, []);
 
   // Fetch saints from API

@@ -34,9 +34,6 @@ export default function Home() {
   useEffect(() => {
     if (!isClient || authLoading) return;
     
-    // Skip auth check during build time
-    if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true') return;
-    
     if (!isAuthenticated) {
       router.push('/sign-in');
     }
@@ -78,7 +75,7 @@ export default function Home() {
   };
 
   // Show loading during client-side rendering or authentication check
-  if (!isClient || authLoading || (!isAuthenticated && process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK !== 'true')) {
+  if (!isClient || authLoading || !isAuthenticated) {
     return (
       <div className="flex items-center justify-center h-screen bg-dark-bg">
         <div className="animate-pulse text-white text-lg font-medium">Loading...</div>

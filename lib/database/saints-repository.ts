@@ -13,6 +13,9 @@ import {
   CacheTTL
 } from './models';
 
+// Re-export types for external use
+export type { DBSaint as Saint, SaintSearchParams as SearchSaintsParams } from './models';
+
 // Get a single saint by ID with all related data
 export async function getSaintById(id: string): Promise<DBSaint | null> {
   const cacheKey = CacheKeys.saint(id);

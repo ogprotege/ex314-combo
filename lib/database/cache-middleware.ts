@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRedisClient } from './connection';
 import crypto from 'crypto';
+import { logger } from '@/lib/utils/logger';
 
 // Cache configuration
 export interface CacheConfig {
@@ -77,9 +78,15 @@ export function withCache(
     const redis = getRedisClient();
     const cacheKey = generateCacheKey(req, mergedConfig);
     
+    let redisConnected = false;
+    
     try {
       // Try to get from cache
-      await redis.connect();
+      if (redis.status !== 'ready') {
+        await redis.connect();
+        redisConnected = true;
+      }
+      
       const cached = await redis.get(cacheKey);
       
       if (cached) {
@@ -99,8 +106,13 @@ export function withCache(
         return response;
       }
     } catch (error) {
-      console.error('Cache retrieval error:', error);
+      logger.error('Cache retrieval error', error);
       // Continue to handler if cache fails
+    } finally {
+      // Clean up connection if we opened it
+      if (redisConnected && redis.status === 'ready') {
+        await redis.disconnect();
+      }
     }
     
     // Execute handler
@@ -108,9 +120,12 @@ export function withCache(
     
     // Cache successful responses
     if (response.status === 200 && mergedConfig.enabled) {
+      let redisConnected = false;
+      
       try {
-        // Get response body
-        const body = await response.text();
+        // Clone the response to avoid consuming the body
+        const responseClone = response.clone();
+        const body = await responseClone.text();
         
         // Prepare cache data
         const cacheData = {
@@ -120,28 +135,30 @@ export function withCache(
         };
         
         // Store in cache
+        if (redis.status !== 'ready') {
+          await redis.connect();
+          redisConnected = true;
+        }
+        
         await redis.setex(
           cacheKey,
           mergedConfig.ttl,
           JSON.stringify(cacheData)
         );
         
-        // Create new response with body
-        const newResponse = new NextResponse(body, {
-          status: response.status,
-          headers: response.headers,
-        });
+        // Add cache headers to original response
+        response.headers.set('X-Cache', 'MISS');
+        response.headers.set('X-Cache-Key', cacheKey);
+        response.headers.set('Cache-Control', `public, max-age=${mergedConfig.ttl}`);
         
-        // Add cache headers
-        newResponse.headers.set('X-Cache', 'MISS');
-        newResponse.headers.set('X-Cache-Key', cacheKey);
-        newResponse.headers.set('Cache-Control', `public, max-age=${mergedConfig.ttl}`);
-        
-        return newResponse;
       } catch (error) {
-        console.error('Cache storage error:', error);
-        // Return original response if caching fails
-        return response;
+        logger.error('Cache storage error', error);
+        // Continue even if caching fails
+      } finally {
+        // Clean up connection if we opened it
+        if (redisConnected && redis.status === 'ready') {
+          await redis.disconnect();
+        }
       }
     }
     
@@ -161,11 +178,11 @@ export async function invalidateApiCache(patterns: string[]): Promise<void> {
       
       if (keys.length > 0) {
         await redis.del(...keys);
-        console.log(`Invalidated ${keys.length} cache keys for pattern: ${pattern}`);
+        logger.info(`Invalidated ${keys.length} cache keys for pattern: ${pattern}`);
       }
     }
   } catch (error) {
-    console.error('Cache invalidation error:', error);
+    logger.error('Cache invalidation error', error);
   }
 }
 
@@ -174,7 +191,7 @@ export async function warmCache(
   urls: string[],
   baseUrl: string = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
 ): Promise<void> {
-  console.log(`Warming cache for ${urls.length} URLs...`);
+  logger.info(`Warming cache for ${urls.length} URLs`);
   
   const promises = urls.map(async (url) => {
     try {
@@ -185,17 +202,17 @@ export async function warmCache(
       });
       
       if (response.ok) {
-        console.log(`✓ Warmed cache for: ${url}`);
+        logger.debug(`Warmed cache for: ${url}`);
       } else {
-        console.warn(`✗ Failed to warm cache for: ${url} (${response.status})`);
+        logger.warn(`Failed to warm cache for: ${url} (${response.status})`);
       }
     } catch (error) {
-      console.error(`✗ Error warming cache for ${url}:`, error);
+      logger.error(`Error warming cache for ${url}`, error);
     }
   });
   
   await Promise.all(promises);
-  console.log('Cache warming complete');
+  logger.info('Cache warming complete');
 }
 
 // Rate limiting with Redis
@@ -228,7 +245,7 @@ export async function checkRateLimit(
       resetAt,
     };
   } catch (error) {
-    console.error('Rate limit check error:', error);
+    logger.error('Rate limit check error', error);
     // Allow request if rate limiting fails
     return {
       allowed: true,

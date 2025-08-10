@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     }
     
     // Skip real API calls during build time
-    if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === 'true' || openaiApiKey === 'sk-placeholder-for-build') {
+    if (openaiApiKey === 'sk-placeholder-for-build') {
       return Response.json({ 
         text: "This is a build-time placeholder response. The actual model will be used in production.",
         model: "build-placeholder",

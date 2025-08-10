@@ -64,7 +64,7 @@ export default function ProfilePage() {
   }, [isAuthenticated, isLoading, router, userData])
 
   // While loading or redirecting
-  if (isLoading || (!isAuthenticated && !process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK)) {
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
         <div className="animate-pulse h-10 w-10 bg-blue-600 rounded-full mb-4"></div>
